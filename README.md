@@ -1,5 +1,7 @@
 # ethers-tools
 
+[![npm version](https://badge.fury.io/js/ethers-tools.svg)](https://badge.fury.io/js/ethers-tools)
+
 ### Installation
 `npm i ethers-tools`
 

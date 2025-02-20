@@ -32,7 +32,7 @@ class RegistryContract extends Contract {
   }
 
   owner(): Promise<string> {
-    return this.contract.owner();
+    return this.call<string>('owner');
   }
 
   getOwnerCall(): ContractCall {

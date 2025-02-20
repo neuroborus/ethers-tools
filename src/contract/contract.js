@@ -1,49 +1,105 @@
-import { Contract as EthersContract } from 'ethers';
+import { Contract as EthersContract, Wallet } from 'ethers';
+import { isStaticMethod } from '../helpers/index.js';
+import { CONTRACTS_ERRORS } from '../errors/contracts.js';
+import { MULTICALL_ALLOW_FAILURE } from '../constants.js';
 
 /**
  * Base contract.
  */
 export class Contract {
-    /**
-     * @type {EthersContract}
-     * @protected
-     */
-    contract;
+  /**
+   * @readonly
+   * @type {string}
+   */
+  address;
+  /**
+   * @readonly
+   * @protected
+   * @type {import('ethers').JsonRpcProvider | import('ethers').WebSocketProvider | import('ethers').Wallet | undefined}
+   */
+  driver;
+  /**
+   * @type {boolean}
+   * @public
+   */
+  isCallable;
+  /**
+   * @type {boolean}
+   * @public
+   */
+  isReadonly;
+  /**
+   * @type {EthersContract}
+   * @public
+   */
+  contract;
 
-    /**
-     * @type {boolean}
-     * @public
-     */
-    isCallable;
+  /**
+   * @param {import('ethers').Interface | import('ethers').InterfaceAbi} [abi]
+   * @param {string} [address]
+   * @param {import('ethers').JsonRpcProvider | import('ethers').WebSocketProvider | import('ethers').Wallet | undefined} [driver]
+   */
+  constructor(
+    abi,
+    address = '0x0000000000000000000000000000000000000000',
+    driver
+  ) {
+    this.address = address;
+    this.driver = driver;
+    this.isCallable = !!address && !!driver;
+    this.isReadonly = !this.isCallable || !(driver instanceof Wallet);
+    this.contract = new EthersContract(address, abi, driver);
+  }
 
-    /**
-     * @param {import('ethers').Interface | import('ethers').InterfaceAbi} abi
-     * @param {string} [address]
-     * @param {import('ethers').JsonRpcProvider} [provider]
-     */
-    constructor(
-        abi,
-        address = '0x0000000000000000000000000000000000000000',
-        provider
-    ) {
-        /**
-         * @readonly
-         * @type {string}
-         */
-        this.address = address;
+  /**
+   * @returns {import('ethers').Interface}
+   */
+  get interface() {
+    return this.contract.interface;
+  }
 
-        /**
-         * @readonly
-         * @protected
-         * @type {import('ethers').JsonRpcProvider | undefined}
-         */
-        this.provider = provider;
+  /**
+   * @template T
+   * @param {string} [methodName]
+   * @param {any[]} [args]
+   * @returns {T}
+   */
+  async call(methodName, args = []) {
+    if (!this.isCallable) throw CONTRACTS_ERRORS.TRY_TO_CALL_NON_CALLABLE;
+    const method = this.contract[methodName];
 
-        this.isCallable = !!address && !!provider;
-        this.contract = new EthersContract(address, abi, provider);
+    if (!method) throw CONTRACTS_ERRORS.METHOD_NOT_FOUND(methodName);
+
+    const functionFragment = this.contract.interface.getFunction(methodName);
+    if (!functionFragment)
+      throw CONTRACTS_ERRORS.FRAGMENT_NOT_FOUND(methodName);
+
+    if (isStaticMethod(functionFragment.stateMutability)) {
+      return await method.staticCall(...args);
+    } else {
+      if (this.isReadonly) throw CONTRACTS_ERRORS.TRY_TO_CALL_NON_CALLABLE;
+      return await method(...args);
     }
+  }
 
-    get interface() {
-        return this.contract.interface;
-    }
+  /**
+   * @param {string} [methodName]
+   * @param {any[]} [args]
+   * @returns {ContractCall}
+   */
+  getCall(methodName, args = []) {
+    if (!this.address) throw CONTRACTS_ERRORS.ADDRESS_IS_NOT_PROVIDED;
+
+    const functionFragment = this.interface.getFunction(methodName);
+    if (!functionFragment)
+      throw CONTRACTS_ERRORS.FRAGMENT_NOT_FOUND(methodName);
+
+    return {
+      method: methodName,
+      target: this.address,
+      allowFailure: MULTICALL_ALLOW_FAILURE,
+      callData: this.interface.encodeFunctionData(methodName, args),
+      stateMutability: functionFragment.stateMutability,
+    };
+  }
 }

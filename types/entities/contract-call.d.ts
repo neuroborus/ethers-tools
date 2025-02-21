@@ -1,3 +1,4 @@
+import { Interface } from 'ethers';
 import type { StateMutability } from './state-mutability';
 
 export type ContractCall = {
@@ -6,4 +7,5 @@ export type ContractCall = {
   allowFailure: boolean;
   callData: string;
   stateMutability: StateMutability;
+  contractInterface: Interface;
 };

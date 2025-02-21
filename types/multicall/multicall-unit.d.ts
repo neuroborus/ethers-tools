@@ -1,41 +1,38 @@
-import { Interface, JsonRpcProvider } from 'ethers';
+import { Interface, JsonRpcProvider, Wallet, WebSocketProvider } from 'ethers';
 import { Contract } from '../contract';
-import { ContractCall } from '../entities';
+import { ContractCall, MulticallTags } from '../entities';
 
-export type Unit = [string, ContractCall];
-export type Result = [string, unknown];
 export type Response = [success: boolean, rawData: string];
-
-export interface SplitData {
-  tags: string[];
-  calls: ContractCall[];
+export interface PreparedData {
+  call: ContractCall;
+  rawData: string;
 }
 
 export declare class MulticallUnit extends Contract {
-  protected units: Unit[];
-  protected results: Result[];
-  protected rawData: Map<string, string>;
-  protected lastSuccess?: boolean;
+  protected readonly _units: Map<MulticallTags, ContractCall>;
+  protected readonly _rawData: Map<MulticallTags, string>;
+  protected readonly _callsSuccess: Map<MulticallTags, boolean>;
+  protected _response: Response[];
+  protected _lastSuccess?: boolean;
 
-  constructor(provider: JsonRpcProvider);
+  constructor(provider: JsonRpcProvider | WebSocketProvider | Wallet);
 
-  add(tag: string, contractCall: ContractCall): string;
+  public clear(): void;
 
-  get rawResults(): Result[];
+  public add(tags: MulticallTags, contractCall: ContractCall): MulticallTags;
+
+  get tags(): MulticallTags[];
+  get calls(): ContractCall[];
+  get response(): Response[];
   get success(): boolean | undefined;
+  get static(): boolean;
 
-  getRaw(tag: string): string | undefined;
+  public isSuccess(tags: MulticallTags): boolean | undefined;
+  public getRaw(tags: MulticallTags): string | undefined;
 
-  getSingle<T>(
-    tag: string,
-    methodName: string,
-    contractInterface: Interface
-  ): T | undefined;
-  getArray<T>(
-    tag: string,
-    methodName: string,
-    contractInterface: Interface
-  ): T | undefined;
+  private getPreparedData(tags: MulticallTags): PreparedData | null;
+  public getSingle<T>(tags: MulticallTags): T | undefined;
+  public getArray<T>(tags: MulticallTags): T | undefined;
 
-  run(): Promise<boolean>;
+  public run(): Promise<boolean>;
 }

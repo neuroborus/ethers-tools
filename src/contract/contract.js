@@ -9,6 +9,7 @@ import { MULTICALL_ALLOW_FAILURE } from '../constants.js';
 export class Contract {
   /**
    * @readonly
+   * @public
    * @type {string}
    */
   address;
@@ -19,23 +20,26 @@ export class Contract {
    */
   driver;
   /**
+   * @readonly
    * @type {boolean}
    * @public
    */
   isCallable;
   /**
-   * @type {boolean}
+   * @readonly
    * @public
+   * @type {boolean}
    */
   isReadonly;
   /**
-   * @type {EthersContract}
+   * @readonly
    * @public
+   * @type {EthersContract}
    */
   contract;
 
   /**
-   * @param {import('ethers').Interface | import('ethers').InterfaceAbi} [abi]
+   * @param {import('ethers').Interface | import('ethers').InterfaceAbi} abi
    * @param {string} [address]
    * @param {import('ethers').JsonRpcProvider | import('ethers').WebSocketProvider | import('ethers').Wallet | undefined} [driver]
    */
@@ -52,6 +56,7 @@ export class Contract {
   }
 
   /**
+   * @public
    * @returns {import('ethers').Interface}
    */
   get interface() {
@@ -60,7 +65,8 @@ export class Contract {
 
   /**
    * @template T
-   * @param {string} [methodName]
+   * @public
+   * @param {string} methodName
    * @param {any[]} [args]
    * @returns {T}
    */
@@ -83,7 +89,8 @@ export class Contract {
   }
 
   /**
-   * @param {string} [methodName]
+   * @public
+   * @param {string} methodName
    * @param {any[]} [args]
    * @returns {ContractCall}
    */
@@ -100,6 +107,7 @@ export class Contract {
       allowFailure: MULTICALL_ALLOW_FAILURE,
       callData: this.interface.encodeFunctionData(methodName, args),
       stateMutability: functionFragment.stateMutability,
+      contractInterface: this.interface,
     };
   }
 }

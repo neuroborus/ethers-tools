@@ -1,4 +1,4 @@
-import { Interface, JsonRpcProvider, Wallet, WebSocketProvider } from 'ethers';
+import { JsonRpcProvider, Wallet, WebSocketProvider } from 'ethers';
 import { Contract } from '../contract';
 import { ContractCall, MulticallTags } from '../entities';
 

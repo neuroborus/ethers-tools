@@ -15,7 +15,7 @@ describe('Test Multicall Unit', () => {
     expect(multicallProvider.static).to.be.false;
   });
 
-  test('Provider should not process write call', async () => {
+  test('Provider should not process write call', () => {
     multicallProvider
       .run()
       .catch((err) =>
@@ -23,7 +23,7 @@ describe('Test Multicall Unit', () => {
       );
   });
 
-  test('Should be cleared completely', async () => {
+  test('Should be cleared completely', () => {
     multicallProvider.clear();
     expect(multicallProvider.calls.length).to.be.equal(0);
     expect(multicallProvider.tags.length).to.be.equal(0);

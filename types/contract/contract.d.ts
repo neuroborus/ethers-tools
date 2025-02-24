@@ -24,5 +24,5 @@ export declare class Contract {
   get interface(): Interface;
 
   call<T = unknown>(methodName: string, args?: any[]): Promise<T>;
-  getCall(methodName: string, args?: any[]): ContractCall;
+  getCall(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall;
 }

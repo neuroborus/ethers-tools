@@ -92,9 +92,10 @@ export class Contract {
    * @public
    * @param {string} methodName
    * @param {any[]} [args]
+   * @param {Partial<ContractCall>} [callData]
    * @returns {ContractCall}
    */
-  getCall(methodName, args = []) {
+  getCall(methodName, args = [], callData = {}) {
     if (!this.address) throw CONTRACTS_ERRORS.ADDRESS_IS_NOT_PROVIDED;
 
     const functionFragment = this.interface.getFunction(methodName);
@@ -108,6 +109,7 @@ export class Contract {
       callData: this.interface.encodeFunctionData(methodName, args),
       stateMutability: functionFragment.stateMutability,
       contractInterface: this.interface,
+      ...callData,
     };
   }
 }

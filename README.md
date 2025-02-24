@@ -89,7 +89,7 @@ providing an ethers `Wallet` as the driver.
 ### Methods
 
 - `call<T = unknown>(methodName: string, args?: any[]): Promise<T>` // Performs a single on-chain call for the contract. Throws an error if unable to execute.
-- `getCall(methodName: string, args?: any[]): ContractCall` // Creates a `ContractCall` for `MulticallUnit`. Throws an error if unable to create.
+- `(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall` // Creates a `ContractCall` for `MulticallUnit`. Throws an error if unable to create.
 
 #### ContractCall
 

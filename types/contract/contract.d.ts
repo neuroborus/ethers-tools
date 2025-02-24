@@ -3,8 +3,8 @@ import {
   Interface,
   InterfaceAbi,
   JsonRpcProvider,
-  Wallet,
-  WebSocketProvider,
+  Provider,
+  Signer,
 } from 'ethers';
 import { ContractCall } from '../entities';
 
@@ -13,7 +13,7 @@ export declare class Contract {
   public readonly isCallable: boolean;
   public readonly isReadonly: boolean;
   public readonly address: string;
-  protected readonly driver?: JsonRpcProvider | WebSocketProvider | Wallet;
+  protected readonly driver?: Provider | Signer;
 
   constructor(
     abi: Interface | InterfaceAbi,
@@ -24,5 +24,9 @@ export declare class Contract {
   get interface(): Interface;
 
   call<T = unknown>(methodName: string, args?: any[]): Promise<T>;
-  getCall(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall;
+  getCall(
+    methodName: string,
+    args?: any[],
+    callData?: Partial<ContractCall>
+  ): ContractCall;
 }

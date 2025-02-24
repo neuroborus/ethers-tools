@@ -1,32 +1,10 @@
 import { describe, test, expect } from 'vitest';
-import { ethers } from 'ethers';
-import { MulticallUnit, Contract } from '../../src';
-import RegistryAbi from './aave-v3-providers-registry.abi.json';
+import { MulticallUnit } from '../../src';
+import { PROVIDER, RegistryContract } from '../stub.js';
 
-const RPC_URL = 'https://eth.llamarpc.com';
-const PROVIDER = new ethers.JsonRpcProvider(RPC_URL);
+export const registry = new RegistryContract();
 
-class RegistryContract extends Contract {
-  constructor() {
-    super(RegistryAbi, '0xbaA999AC55EAce41CcAE355c77809e68Bb345170', PROVIDER);
-  }
-
-  getAddressesProvidersListCall() {
-    return this.getCall('getAddressesProvidersList');
-  }
-
-  owner() {
-    return this.call('owner');
-  }
-
-  getOwnerCall() {
-    // 0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A
-    return this.getCall('owner');
-  }
-}
-const registry = new RegistryContract();
-
-describe('Test MulticallUnit', () => {
+describe('E2E Test MulticallUnit', () => {
   let prevOwner;
   let prevList;
   test('Test of MulticallUnit', async () => {

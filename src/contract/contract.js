@@ -1,4 +1,4 @@
-import { Contract as EthersContract, Wallet } from 'ethers';
+import { Contract as EthersContract, Signer } from 'ethers';
 import { isStaticMethod } from '../helpers/index.js';
 import { CONTRACTS_ERRORS } from '../errors/contracts.js';
 import { MULTICALL_ALLOW_FAILURE } from '../constants.js';
@@ -16,7 +16,7 @@ export class Contract {
   /**
    * @readonly
    * @protected
-   * @type {import('ethers').JsonRpcProvider | import('ethers').WebSocketProvider | import('ethers').Wallet | undefined}
+   * @type {import('ethers').Provider | import('ethers').Signer | undefined}
    */
   driver;
   /**
@@ -41,7 +41,7 @@ export class Contract {
   /**
    * @param {import('ethers').Interface | import('ethers').InterfaceAbi} abi
    * @param {string} [address]
-   * @param {import('ethers').JsonRpcProvider | import('ethers').WebSocketProvider | import('ethers').Wallet | undefined} [driver]
+   * @param {import('ethers').Provider | import('ethers').Signer | undefined} [driver]
    */
   constructor(
     abi,
@@ -51,7 +51,8 @@ export class Contract {
     this.address = address;
     this.driver = driver;
     this.isCallable = !!address && !!driver;
-    this.isReadonly = !this.isCallable || !(driver instanceof Wallet);
+    this.isReadonly =
+      !this.isCallable || !(driver && typeof driver.getAddress === 'function'); // if Signer
     this.contract = new EthersContract(address, abi, driver);
   }
 
@@ -92,7 +93,7 @@ export class Contract {
    * @public
    * @param {string} methodName
    * @param {any[]} [args]
-   * @param {Partial<ContractCall>} [callData]
+   * @param {Partial<import('../../types').ProviderContractCall>} [callData]
    * @returns {ContractCall}
    */
   getCall(methodName, args = [], callData = {}) {

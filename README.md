@@ -76,7 +76,7 @@ true
 
 The driver is either a `signer` or a `provider`. The contract's ability to make calls depends on it.
 An error will occur if you try to call the contract without it, especially when making a non-static call without
-providing an ethers `Wallet` as the driver.
+providing an ethers `Signer` (`Wallet`, etc.) as the driver.
 
 ### Fields
 

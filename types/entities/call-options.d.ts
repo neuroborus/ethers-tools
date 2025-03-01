@@ -1,11 +1,8 @@
 import { CallMutability } from './call-mutability';
 import { PriorityCallOptions } from './priority-call-options';
 
-// Used at the moment of creation or during execution
-export interface MulticallOptions {
-  maxCallsStack?: number;
+export interface CallOptions {
   forceMutability?: CallMutability;
-  waitForTxs?: boolean;
-  highPriorityTxs?: boolean;
+  highPriorityTx?: boolean;
   priorityOptions?: PriorityCallOptions;
 }

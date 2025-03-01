@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { MulticallUnit } from '../../src';
 import { PROVIDER, RegistryContract } from '../stub.js';
 

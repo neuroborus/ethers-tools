@@ -15,8 +15,8 @@ on the Ethereum blockchain and other EVM-compatible networks.
 ## Usage example
 
 ```typescript
-import { MulticallUnit, Contract, ContractCall } from 'ethers-tools';
 import { ethers } from 'ethers';
+import { Contract, ContractCall, MulticallUnit } from 'ethers-tools';
 
 const RPC_URL = 'https://eth.llamarpc.com';
 const PROVIDER = new ethers.JsonRpcProvider(RPC_URL);
@@ -140,5 +140,5 @@ export type MulticallTags = Tagable | Tagable[] | Record<Keyable, Tagable>;
 - `run(): Promise<boolean>` // Executes the multicall operation.
 - `getSingle<T>(tags: MulticallTags): T | undefined` // Get single primitive value as result.
 - `getArray<T>(tags: MulticallTags): T | undefined` // Get array as result.
-- `getRaw(tags: MulticallTags): string | undefined;` // Get raw multicall result.
+- `getRaw(tags: MulticallTags): string | TransactionResponse | TransactionReceipt | undefined;` // Get the raw multicall result. Returns TransactionResponse if a mutable call has been processed. Returns TransactionReceipt if the wait flag was turned on.
 - `isSuccess(tags: MulticallTags): boolean | undefined` // Check if call finished successfully.

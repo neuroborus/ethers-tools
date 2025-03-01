@@ -1,10 +1,21 @@
 import { Multicall3Abi } from '../abis/index.js';
+import {
+  DEFAULT_MULTICALL_CALLS_STACK_LIMIT,
+  MULTICALL_ADDRESS,
+} from '../constants.js';
 import { Contract } from '../contract/index.js';
-import { MULTICALL_ADDRESS } from '../constants.js';
-import { CONTRACTS_ERRORS } from '../errors/contracts.js';
-import { isStaticMethod } from '../helpers/index.js';
+import { CallMutability } from '../entities/index.js';
+import { isStaticArray } from '../helpers/index.js';
+
+const aggregate3 = 'aggregate3';
 
 export class MulticallUnit extends Contract {
+  /**
+   * @protected
+   * @readonly
+   * @type {import('../../types/entities').MulticallOptions}
+   */
+  _options = {};
   /**
    * @protected
    * @readonly
@@ -36,10 +47,17 @@ export class MulticallUnit extends Contract {
   _lastSuccess;
 
   /**
-   * @param {import('ethers').Provider | import('ethers').Signer | undefined} [driver]
+   * @param {import('ethers').Provider | import('ethers').Signer | undefined} driver
+   * @param {import('../../types/entities').MulticallOptions} [options]
    */
-  constructor(driver) {
+  constructor(
+    driver,
+    options = {
+      maxCallsStack: DEFAULT_MULTICALL_CALLS_STACK_LIMIT,
+    }
+  ) {
     super(Multicall3Abi, MULTICALL_ADDRESS, driver);
+    this._options = options;
   }
 
   /**
@@ -99,7 +117,7 @@ export class MulticallUnit extends Contract {
    */
   get static() {
     if (!this._units.size) return true;
-    return !this.calls.some((call) => !isStaticMethod(call.stateMutability));
+    return isStaticArray(this.calls);
   }
 
   /**
@@ -122,12 +140,18 @@ export class MulticallUnit extends Contract {
   /**
    * @private
    * @param {import('../../types/entities').MulticallTags} tags
-   * @returns {import('../../types/multicall').PreparedData | null}
+   * @returns {import('../../types/multicall').DecodableData | null}
    */
-  getPreparedData(tags) {
+  _getDecodableData(tags) {
     const rawData = this._rawData.get(tags);
     const call = this._units.get(tags);
-    if (!rawData || !call || !this.isSuccess(tags)) return null;
+    if (
+      !rawData ||
+      typeof rawData !== 'string' || // rawData should be a string if it contains decodable data
+      !call ||
+      !this.isSuccess(tags)
+    )
+      return null;
     return {
       call,
       rawData,
@@ -141,59 +165,106 @@ export class MulticallUnit extends Contract {
    * @returns {T | undefined}
    */
   getSingle(tags) {
-    const data = this.getPreparedData(tags);
+    const data = this._getDecodableData(tags);
     if (!data) return undefined;
-    return data.call.contractInterface.decodeFunctionResult(
+    const [value] = data.call.contractInterface.decodeFunctionResult(
       data.call.method,
       data.rawData
-    )[0];
+    );
+    return value;
   }
 
   /**
    * @template T
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
+   * @param {boolean} [deep]
    * @returns {T | undefined}
    */
-  getArray(tags) {
-    const data = this.getPreparedData(tags);
+  getArray(tags, deep = false) {
+    const data = this._getDecodableData(tags);
     if (!data) return undefined;
-    return Object.values(
-      data.call.contractInterface.decodeFunctionResult(
-        data.call.method,
-        data.rawData
-      )[0]
-    );
+    const [array] = data.call.contractInterface
+      .decodeFunctionResult(data.call.method, data.rawData)
+      .toArray(deep);
+    return array;
   }
 
   /**
    * @public
+   * @param {import('../../types/entities').MulticallOptions} [options]
    * @returns {Promise<boolean>}
    */
-  async run() {
-    if (!this.contract.aggregate3) {
-      throw CONTRACTS_ERRORS.METHOD_NOT_FOUND('aggregate3');
-    }
+  async run(options = {}) {
+    const runOptions = {
+      ...this._options,
+      ...options,
+    };
 
+    this._lastSuccess = undefined;
+    this._response = [];
     const tags = this.tags;
     const calls = this.calls;
 
-    let response;
-    if (this.static) {
-      response = await this.contract.aggregate3.staticCall(calls);
-    } else {
-      if (this.isReadonly) throw CONTRACTS_ERRORS.TRY_TO_CALL_READ_ONLY;
-      response = await this.contract.aggregate3(calls);
+    for (let i = 0; i < calls.length; i += runOptions.maxCallsStack) {
+      const endIndex = Math.min(i + runOptions.maxCallsStack, calls.length);
+      const iterationCalls = calls.slice(i, endIndex); // half-opened interval
+
+      const isStatic = runOptions.forceMutability
+        ? runOptions.forceMutability === CallMutability.Static
+        : isStaticArray(iterationCalls);
+
+      const iterationResponse = await this._processCalls(
+        iterationCalls,
+        isStatic,
+        runOptions
+      );
+      this._response.push(...iterationResponse);
     }
 
-    this._response = response;
-    this._lastSuccess = true;
-    response.forEach(([success, data], index) => {
+    this._response.forEach(([success, data], index) => {
       const tag = tags[index];
       if (!success) this._lastSuccess = false;
       this._rawData.set(tag, data);
       this._callsSuccess.set(tag, success);
     });
     return this._lastSuccess;
+  }
+
+  /**
+   * @private
+   * @param {import('../../types/entities').ContractCall[]} iterationCalls
+   * @param {boolean} isStatic
+   * @param {import('../../types/entities').MulticallOptions} runOptions
+   * @returns {Promise<import('../../types/multicall').Response[]>}
+   */
+  async _processCalls(iterationCalls, isStatic, runOptions) {
+    let result = [];
+    if (isStatic) {
+      result = await this.call(aggregate3, [iterationCalls], {
+        forceMutability: CallMutability.Static,
+      });
+      this._lastSuccess = !(this._lastSuccess === false);
+    } else {
+      const tx = await this.call(aggregate3, [iterationCalls], {
+        forceMutability: CallMutability.Mutable,
+        highPriorityTx: runOptions.highPriorityTxs,
+        priorityOptions: runOptions.priorityOptions,
+      });
+      if (runOptions.waitForTxs) {
+        const receipt = await tx.wait();
+        if (!receipt) {
+          result = Array(iterationCalls.length).fill([false, null]);
+          this._lastSuccess = false;
+        } else {
+          result = Array(iterationCalls.length).fill([true, receipt]);
+          this._lastSuccess = !(this._lastSuccess === false);
+        }
+      } else {
+        result = Array(iterationCalls.length).fill([true, tx]);
+        this._lastSuccess = !(this._lastSuccess === false);
+      }
+    }
+    return result;
   }
 }

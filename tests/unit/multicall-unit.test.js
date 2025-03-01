@@ -1,7 +1,7 @@
-import { describe, test, expect } from 'vitest';
-import { RegistryContract, PROVIDER } from '../stub.js';
-import { MulticallUnit } from '../../src/index.js';
+import { describe, expect, test } from 'vitest';
 import { CONTRACTS_ERRORS } from '../../src/errors/contracts.js';
+import { MulticallUnit } from '../../src/index.js';
+import { PROVIDER, RegistryContract } from '../stub.js';
 
 const registryProvider = new RegistryContract(PROVIDER);
 const multicallProvider = new MulticallUnit(PROVIDER);
@@ -19,7 +19,7 @@ describe('Test Multicall Unit', () => {
     multicallProvider
       .run()
       .catch((err) =>
-        expect(err).toEqual(CONTRACTS_ERRORS.TRY_TO_CALL_READ_ONLY)
+        expect(err).toEqual(CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION)
       );
   });
 

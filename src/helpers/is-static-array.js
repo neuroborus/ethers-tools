@@ -1,7 +1,7 @@
 import { isStaticMethod } from './is-static.js';
 
 /**
- * @param {ContractCall[]} [calls]
+ * @param {import('../../types/entities').ContractCall[]} [calls]
  * @returns {boolean}
  */
 export const isStaticArray = (calls) =>

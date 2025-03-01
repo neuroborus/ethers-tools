@@ -1,6 +1,6 @@
-import { describe, test, expect } from 'vitest';
-import { RegistryContract, PROVIDER, WALLET } from '../stub.js';
+import { describe, expect, test } from 'vitest';
 import { CONTRACTS_ERRORS } from '../../src/errors/contracts.js';
+import { PROVIDER, RegistryContract, WALLET } from '../stub.js';
 
 const registryProvider = new RegistryContract(PROVIDER);
 const registryWallet = new RegistryContract(WALLET);
@@ -20,7 +20,7 @@ describe('Test Contract', () => {
     registryProvider
       .renounceOwnership()
       .catch((err) =>
-        expect(err).toEqual(CONTRACTS_ERRORS.TRY_TO_CALL_NON_CALLABLE)
+        expect(err).toEqual(CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION)
       );
   });
 });

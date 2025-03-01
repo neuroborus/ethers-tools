@@ -1,4 +1,4 @@
-import { PRIORITY_CALL_MULTIPLIER } from '../constants.js';
+import { DEFAULT_PRIORITY_CALL_MULTIPLIER } from '../constants.js';
 
 /**
  * @param {import('ethers').Provider} provider
@@ -15,7 +15,7 @@ export async function priorityCall(
   method,
   args = [],
   options = {
-    multiplier: PRIORITY_CALL_MULTIPLIER,
+    multiplier: DEFAULT_PRIORITY_CALL_MULTIPLIER,
   }
 ) {
   const [originalFeeData, originalGasLimit] = await gatherOriginalData(

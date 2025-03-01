@@ -8,25 +8,25 @@ export class MulticallUnit extends Contract {
   /**
    * @protected
    * @readonly
-   * @type {Map<import('../../types').MulticallTags, ContractCall>}
+   * @type {Map<import('../../types/entities').MulticallTags, ContractCall>}
    */
   _units = new Map();
   /**
    * @protected
    * @readonly
-   * @type {import('../../types').Response[]}
+   * @type {import('../../types/multicall').Response[]}
    */
   _response = [];
   /**
    * @protected
    * @readonly
-   * @type {Map<import('../../types').MulticallTags, string>}
+   * @type {Map<import('../../types/entities').MulticallTags, string>}
    */
   _rawData = new Map();
   /**
    * @protected
    * @readonly
-   * @type {Map<import('../../types').MulticallTags, boolean>}
+   * @type {Map<import('../../types/entities').MulticallTags, boolean>}
    */
   _callsSuccess = new Map();
   /**
@@ -56,9 +56,9 @@ export class MulticallUnit extends Contract {
 
   /**
    * @public
-   * @param {import('../../types').MulticallTags} tags
-   * @param {import('../../types').ContractCall} contractCall
-   * @returns {import('../../types').MulticallTags}
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {import('../../types/entities').ContractCall} contractCall
+   * @returns {import('../../types/entities').MulticallTags}
    */
   add(tags, contractCall) {
     this._units.set(tags, contractCall);
@@ -67,21 +67,21 @@ export class MulticallUnit extends Contract {
 
   /**
    * @public
-   * @returns {import('../../types').MulticallTags[]}
+   * @returns {import('../../types/entities').MulticallTags[]}
    */
   get tags() {
     return Array.from(this._units.keys()); // The order is guaranteed
   }
   /**
    * @public
-   * @returns {import('../../types').ContractCall[]}
+   * @returns {import('../../types/entities').ContractCall[]}
    */
   get calls() {
     return Array.from(this._units.values()); // The order is guaranteed
   }
   /**
    * @public
-   * @returns {import('../../types').Response[]}
+   * @returns {import('../../types/multicall').Response[]}
    */
   get response() {
     return this._response;
@@ -104,7 +104,7 @@ export class MulticallUnit extends Contract {
 
   /**
    * @public
-   * @param {import('../../types').MulticallTags} tags
+   * @param {import('../../types/entities').MulticallTags} tags
    * @returns {boolean | undefined}
    */
   isSuccess(tags) {
@@ -112,7 +112,7 @@ export class MulticallUnit extends Contract {
   }
   /**
    * @public
-   * @param {import('../../types').MulticallTags} tags
+   * @param {import('../../types/entities').MulticallTags} tags
    * @returns {string | undefined}
    */
   getRaw(tags) {
@@ -121,8 +121,8 @@ export class MulticallUnit extends Contract {
 
   /**
    * @private
-   * @param {import('../../types').MulticallTags} tags
-   * @returns {import('../../types').PreparedData | null}
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @returns {import('../../types/multicall').PreparedData | null}
    */
   getPreparedData(tags) {
     const rawData = this._rawData.get(tags);
@@ -137,7 +137,7 @@ export class MulticallUnit extends Contract {
   /**
    * @template T
    * @public
-   * @param {import('../../types').MulticallTags} tags
+   * @param {import('../../types/entities').MulticallTags} tags
    * @returns {T | undefined}
    */
   getSingle(tags) {
@@ -152,7 +152,7 @@ export class MulticallUnit extends Contract {
   /**
    * @template T
    * @public
-   * @param {import('../../types').MulticallTags} tags
+   * @param {import('../../types/entities').MulticallTags} tags
    * @returns {T | undefined}
    */
   getArray(tags) {

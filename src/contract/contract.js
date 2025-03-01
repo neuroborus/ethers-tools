@@ -93,8 +93,8 @@ export class Contract {
    * @public
    * @param {string} methodName
    * @param {any[]} [args]
-   * @param {Partial<import('../../types').ProviderContractCall>} [callData]
-   * @returns {ContractCall}
+   * @param {Partial<import('../../types/entities').ContractCall>} [callData]
+   * @returns {import('../../types/entities').ContractCall}
    */
   getCall(methodName, args = [], callData = {}) {
     if (!this.address) throw CONTRACTS_ERRORS.ADDRESS_IS_NOT_PROVIDED;

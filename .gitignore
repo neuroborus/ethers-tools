@@ -1,6 +1,7 @@
+.env
+
 /dist
 /node_modules
-
 
 # Tests
 /coverage

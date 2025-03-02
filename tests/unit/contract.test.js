@@ -1,26 +1,41 @@
-import { describe, test, expect } from 'vitest';
-import { RegistryContract, PROVIDER, WALLET } from '../stub.js';
-import { CONTRACTS_ERRORS } from '../../src/errors/contracts.js';
+import { describe, expect, test } from 'vitest';
+import { JsonRpcProvider, Wallet } from 'ethers';
+import { CONTRACTS_ERRORS } from '../../src/errors';
+import { PROVIDER, RegistryContract, WALLET } from '../stub.js';
 
 const registryProvider = new RegistryContract(PROVIDER);
 const registryWallet = new RegistryContract(WALLET);
 
 describe('Test Contract', () => {
-  test('Provider should be readonly & callable', async () => {
+  test('Provider should be readonly & callable', () => {
     expect(registryProvider.isReadonly).to.be.true;
     expect(registryProvider.isCallable).to.be.true;
   });
 
-  test('Wallet should be non-readonly & callable', async () => {
+  test('Wallet should be non-readonly & callable', () => {
     expect(registryWallet.isReadonly).to.be.false;
     expect(registryWallet.isCallable).to.be.true;
   });
 
-  test('Provider should throw error if write', async () => {
+  test('Provider should throw error if write', () => {
     registryProvider
       .renounceOwnership()
       .catch((err) =>
-        expect(err).toEqual(CONTRACTS_ERRORS.TRY_TO_CALL_NON_CALLABLE)
+        expect(err).toEqual(CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION)
       );
+  });
+
+  test('Should provide provider', () => {
+    const pp = registryProvider.provider;
+    const pw = registryWallet.provider;
+    expect(pp).toBeInstanceOf(JsonRpcProvider);
+    expect(pw).toBeInstanceOf(JsonRpcProvider);
+  });
+
+  test('Should provide signer', () => {
+    const pp = registryProvider.signer;
+    const pw = registryWallet.signer;
+    expect(pp).to.be.undefined;
+    expect(pw).toBeInstanceOf(Wallet);
   });
 });

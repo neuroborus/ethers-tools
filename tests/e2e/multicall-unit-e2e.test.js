@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { MulticallUnit } from '../../src';
 import { PROVIDER, RegistryContract } from '../stub.js';
 
@@ -68,5 +68,36 @@ describe('E2E Test MulticallUnit', () => {
       .to.be.eq(JSON.stringify(listRec))
       .to.be.eq(JSON.stringify(listArr));
     expect(prevOwner).to.be.eq(ownerRec).to.be.eq(ownerArr);
+  });
+
+  test('Test of maxCallsStack', async () => {
+    const unit = new MulticallUnit(PROVIDER, {
+      maxCallsStack: 3,
+    });
+    const listCall = registry.getAddressesProvidersListCall();
+    const ownerCall = registry.getOwnerCall();
+
+    const listCallTag1 = 'listCall';
+    unit.add(listCallTag1, listCall);
+
+    const ownerCallTag1 = 'ownerCall1';
+    unit.add(ownerCallTag1, ownerCall);
+
+    const listCallTag2 = 'listCall2';
+    unit.add(listCallTag2, listCall);
+
+    const ownerCallTag2 = 'ownerCall2';
+    unit.add(ownerCallTag2, ownerCall);
+
+    const result = await unit.run();
+
+    const list1 = unit.getArray(listCallTag1);
+    const owner1 = unit.getSingle(ownerCallTag1);
+    const list2 = unit.getArray(listCallTag2);
+    const owner2 = unit.getSingle(ownerCallTag2);
+
+    expect(list1[0]).to.be.equal(list2[0]);
+    expect(owner1).to.be.equal(owner2);
+    expect(result).to.be.true;
   });
 });

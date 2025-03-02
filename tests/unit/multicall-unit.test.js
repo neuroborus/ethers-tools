@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { CONTRACTS_ERRORS } from '../../src/errors/contracts.js';
+import { CONTRACTS_ERRORS, MULTICALL_ERRORS } from '../../src/errors/index.js';
 import { MulticallUnit } from '../../src/index.js';
 import { PROVIDER, RegistryContract } from '../stub.js';
 
@@ -28,5 +28,11 @@ describe('Test Multicall Unit', () => {
     expect(multicallProvider.calls.length).to.be.equal(0);
     expect(multicallProvider.tags.length).to.be.equal(0);
     expect(multicallProvider.success).to.be.undefined;
+  });
+
+  test('Should not allow simultaneous run', () => {
+    Promise.all([multicallProvider.run(), multicallProvider.run()]).catch(
+      (err) => expect(err).toEqual(MULTICALL_ERRORS.SIMULTANEOUS_INVOCATIONS)
+    );
   });
 });

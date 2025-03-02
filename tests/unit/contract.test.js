@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { CONTRACTS_ERRORS } from '../../src/errors/contracts.js';
+import { JsonRpcProvider, Wallet } from 'ethers';
+import { CONTRACTS_ERRORS } from '../../src/errors';
 import { PROVIDER, RegistryContract, WALLET } from '../stub.js';
 
 const registryProvider = new RegistryContract(PROVIDER);
@@ -22,5 +23,19 @@ describe('Test Contract', () => {
       .catch((err) =>
         expect(err).toEqual(CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION)
       );
+  });
+
+  test('Should provide provider', () => {
+    const pp = registryProvider.provider;
+    const pw = registryWallet.provider;
+    expect(pp).toBeInstanceOf(JsonRpcProvider);
+    expect(pw).toBeInstanceOf(JsonRpcProvider);
+  });
+
+  test('Should provide signer', () => {
+    const pp = registryProvider.signer;
+    const pw = registryWallet.signer;
+    expect(pp).to.be.undefined;
+    expect(pw).toBeInstanceOf(Wallet);
   });
 });

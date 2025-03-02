@@ -1,8 +1,8 @@
 import { Contract as EthersContract, Signer } from 'ethers';
 import { Provider } from 'ethers';
-import { DEFAULT_MULTICALL_ALLOW_FAILURE } from '../constants.js';
 import { CallMutability } from '../entities/index.js';
-import { CONTRACTS_ERRORS } from '../errors/contracts.js';
+import { DEFAULT_MULTICALL_ALLOW_FAILURE } from '../constants.js';
+import { CONTRACTS_ERRORS } from '../errors/index.js';
 import { isStaticMethod, priorityCall } from '../helpers/index.js';
 
 /**
@@ -67,6 +67,10 @@ export class Contract {
     this._callsOptions = callsOptions;
   }
 
+  /**
+   * @public
+   * @returns {import('ethers').Provider | undefined}
+   */
   get provider() {
     if (!this._driver) return undefined;
     if (typeof this._driver.getAddress === 'function')
@@ -74,6 +78,10 @@ export class Contract {
     return this._driver;
   }
 
+  /**
+   * @public
+   * @returns {import('ethers').Signer | undefined}
+   */
   get signer() {
     if (this._driver && typeof this._driver.getAddress === 'function')
       return this._driver;

@@ -1,9 +1,8 @@
 import {
-  JsonRpcProvider,
+  Provider,
+  Signer,
   TransactionReceipt,
   TransactionResponse,
-  Wallet,
-  WebSocketProvider,
 } from 'ethers';
 import { Contract } from '../contract';
 import { ContractCall, MulticallOptions, MulticallTags } from '../entities';
@@ -24,8 +23,13 @@ export declare class MulticallUnit extends Contract {
   protected readonly _callsSuccess: Map<MulticallTags, boolean>;
   protected _response: Response[];
   protected _lastSuccess?: boolean;
+  protected _isExecuting: boolean;
 
-  constructor(provider: JsonRpcProvider | WebSocketProvider | Wallet);
+  constructor(
+    driver: Signer | Provider,
+    options?: MulticallOptions,
+    multicallAddress?: string
+  );
 
   public clear(): void;
 
@@ -36,6 +40,7 @@ export declare class MulticallUnit extends Contract {
   get response(): Response[];
   get success(): boolean | undefined;
   get static(): boolean;
+  get executing(): boolean;
 
   public isSuccess(tags: MulticallTags): boolean | undefined;
   public getRaw(
@@ -44,9 +49,9 @@ export declare class MulticallUnit extends Contract {
 
   private _getDecodableData(tags: MulticallTags): DecodableData | null;
   public getSingle<T>(tags: MulticallTags): T | undefined;
-  public getArray<T>(tags: MulticallTags): T | undefined;
+  public getArray<T>(tags: MulticallTags, deep?: boolean): T | undefined;
 
-  public run(): Promise<boolean>;
+  public run(options?: MulticallOptions): Promise<boolean>;
   private _processCalls(
     iterationCalls: ContractCall[],
     isStatic: boolean,

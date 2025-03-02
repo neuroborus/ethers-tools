@@ -7,6 +7,7 @@ import { DEFAULT_PRIORITY_CALL_MULTIPLIER } from '../constants.js';
  * @param {string} method
  * @param {any[]} [args]
  * @param {import('../../types/entities').PriorityCallOptions} options
+ * @returns {Promise<import('ethers').TransactionResponse>}
  */
 export async function priorityCall(
   provider,
@@ -30,7 +31,7 @@ export async function priorityCall(
     options.multiplier * Number(originalFeeData.gasPrice)
   );
   const gasLimit = Math.ceil(options.multiplier * Number(originalGasLimit));
-  const txn = await contract.getFunction(method).populateTransaction(args, {
+  const txn = await contract.getFunction(method).populateTransaction(...args, {
     gasLimit,
     gasPrice,
   });
@@ -54,6 +55,7 @@ export async function priorityCall(
  * @param {string} method
  * @param {any[]} [args]
  * @param {boolean} asynchronous
+ * @returns {Promise<[import('ethers').FeeData, bigint]>}
  */
 async function gatherOriginalData(
   provider,
@@ -66,12 +68,12 @@ async function gatherOriginalData(
   if (asynchronous) {
     [originalFeeData, originalGasLimit] = await Promise.all([
       provider.getFeeData(),
-      contract.getFunction(method).estimateGas(args),
+      contract.getFunction(method).estimateGas(...args),
     ]);
     return [originalFeeData, originalGasLimit];
   }
   originalFeeData = await provider.getFeeData();
-  originalGasLimit = await contract.getFunction(method).estimateGas(args);
+  originalGasLimit = await contract.getFunction(method).estimateGas(...args);
 
   return [originalFeeData, originalGasLimit];
 }

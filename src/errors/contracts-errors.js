@@ -3,7 +3,7 @@ export const CONTRACTS_ERRORS = {
     'The contract was created as non-callable, but an attempt was made to call it!'
   ),
   READ_ONLY_CONTRACT_MUTATION: new Error(
-    'The contract was created as read-only, but an attempt was made to call it!'
+    'The contract was created as read-only, but an attempt was made to call mutable method!'
   ),
   MISSING_CONTRACT_ADDRESS: new Error('A contract address was not provided!'),
   METHOD_NOT_DEFINED: (methodName) =>

@@ -2,7 +2,6 @@ import {
   Contract as EthersContract,
   Interface,
   InterfaceAbi,
-  JsonRpcProvider,
   Provider,
   Signer,
 } from 'ethers';
@@ -19,7 +18,8 @@ export declare class Contract {
   constructor(
     abi: Interface | InterfaceAbi,
     address?: string,
-    provider?: JsonRpcProvider
+    driver?: Signer | Provider,
+    callsOptions?: CallOptions
   );
 
   get provider(): Provider | undefined;

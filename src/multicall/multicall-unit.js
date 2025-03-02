@@ -6,6 +6,7 @@ import {
 import { Contract } from '../contract/index.js';
 import { CallMutability } from '../entities/index.js';
 import { isStaticArray } from '../helpers/index.js';
+import { MULTICALL_ERRORS } from '../errors/index.js';
 
 const aggregate3 = 'aggregate3';
 
@@ -45,19 +46,24 @@ export class MulticallUnit extends Contract {
    * @type {boolean | undefined}
    */
   _lastSuccess;
+  /**
+   * @protected
+   * @type {boolean}
+   */
+  _isExecuting = false;
 
   /**
    * @param {import('ethers').Provider | import('ethers').Signer | undefined} driver
    * @param {import('../../types/entities').MulticallOptions} [options]
+   * @param {string} [multicallAddress]
    */
-  constructor(
-    driver,
-    options = {
+  constructor(driver, options = {}, multicallAddress = MULTICALL_ADDRESS) {
+    super(Multicall3Abi, multicallAddress, driver);
+    this._options = {
       maxCallsStack: DEFAULT_MULTICALL_CALLS_STACK_LIMIT,
-    }
-  ) {
-    super(Multicall3Abi, MULTICALL_ADDRESS, driver);
-    this._options = options;
+      waitForTxs: true, // The safest way to handle nonce in transactions
+      ...options,
+    };
   }
 
   /**
@@ -119,6 +125,13 @@ export class MulticallUnit extends Contract {
     if (!this._units.size) return true;
     return isStaticArray(this.calls);
   }
+  /**
+   * @public
+   * @returns {boolean}
+   */
+  get executing() {
+    return this._isExecuting;
+  }
 
   /**
    * @public
@@ -131,7 +144,7 @@ export class MulticallUnit extends Contract {
   /**
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
-   * @returns {string | undefined}
+   * @returns {string | import('ethers').TransactionResponse | import('ethers').TransactionReceipt | undefined}
    */
   getRaw(tags) {
     return this._rawData.get(tags);
@@ -201,33 +214,41 @@ export class MulticallUnit extends Contract {
       ...options,
     };
 
-    this._lastSuccess = undefined;
-    this._response = [];
-    const tags = this.tags;
-    const calls = this.calls;
+    if (this._isExecuting) throw MULTICALL_ERRORS.SIMULTANEOUS_INVOCATIONS;
+    try {
+      this._isExecuting = true;
+      this._lastSuccess = undefined;
+      this._response = [];
+      const tags = this.tags;
+      const calls = this.calls;
 
-    for (let i = 0; i < calls.length; i += runOptions.maxCallsStack) {
-      const endIndex = Math.min(i + runOptions.maxCallsStack, calls.length);
-      const iterationCalls = calls.slice(i, endIndex); // half-opened interval
+      for (let i = 0; i < calls.length; i += runOptions.maxCallsStack) {
+        const endIndex = Math.min(i + runOptions.maxCallsStack, calls.length);
+        const iterationCalls = calls.slice(i, endIndex); // half-opened interval
 
-      const isStatic = runOptions.forceMutability
-        ? runOptions.forceMutability === CallMutability.Static
-        : isStaticArray(iterationCalls);
+        const isStatic = runOptions.forceMutability
+          ? runOptions.forceMutability === CallMutability.Static
+          : isStaticArray(iterationCalls);
 
-      const iterationResponse = await this._processCalls(
-        iterationCalls,
-        isStatic,
-        runOptions
-      );
-      this._response.push(...iterationResponse);
+        const iterationResponse = await this._processCalls(
+          iterationCalls,
+          isStatic,
+          runOptions
+        );
+        this._response.push(...iterationResponse);
+      }
+
+      this._response.forEach(([success, data], index) => {
+        const tag = tags[index];
+        if (!success) this._lastSuccess = false;
+        this._rawData.set(tag, data);
+        this._callsSuccess.set(tag, success);
+      });
+    } catch (error) {
+      throw error;
+    } finally {
+      this._isExecuting = false;
     }
-
-    this._response.forEach(([success, data], index) => {
-      const tag = tags[index];
-      if (!success) this._lastSuccess = false;
-      this._rawData.set(tag, data);
-      this._callsSuccess.set(tag, success);
-    });
     return this._lastSuccess;
   }
 
@@ -239,7 +260,7 @@ export class MulticallUnit extends Contract {
    * @returns {Promise<import('../../types/multicall').Response[]>}
    */
   async _processCalls(iterationCalls, isStatic, runOptions) {
-    let result = [];
+    let result;
     if (isStatic) {
       result = await this.call(aggregate3, [iterationCalls], {
         forceMutability: CallMutability.Static,

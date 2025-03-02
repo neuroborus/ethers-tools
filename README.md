@@ -2,17 +2,23 @@
 
 [![npm version](https://badge.fury.io/js/ethers-tools.svg)](https://badge.fury.io/js/ethers-tools)
 
-### Installation
-
-`npm i ethers-tools`
-
 ## Description
 
-**ethers-tools** is a lightweight JavaScript/TypeScript library built on top of [ethers.js](https://github.com/ethers-io/ethers.js)  
-designed to simplify **smart contract** interactions and [multicall3](https://www.multicall3.com/) aggregation  
-on the Ethereum blockchain and other EVM-compatible networks.
+**ethers-tools** is a lightweight zero-dependency JavaScript/TypeScript library built on top of [ethers.js](https://github.com/ethers-io/ethers.js)
+designed to simplify **smart contract** interactions and [multicall3](https://www.multicall3.com/) aggregation
+on the Ethereum blockchain and other EVM-compatible networks.  
+All of these tools are compatible with TypeScript and pure JavaScript.  
+JSDoc is provided.
 
-## Usage example
+### Installation
+
+First, you will need **ethers**. Then, you can install:
+
+`npm i ethers-tools`  
+`yarn add ethers-tools`  
+`pnpm add ethers-tools`
+
+## Quickstart
 
 ```typescript
 import { ethers } from 'ethers';
@@ -76,31 +82,58 @@ true
 
 The driver is either a `signer` or a `provider`. The contract's ability to make calls depends on it.
 An error will occur if you try to call the contract without it, especially when making a non-static call without
-providing an ethers `Signer` (`Wallet`, etc.) as the driver.
+providing an ethers `Signer` (e.g, `Wallet`) as the driver.
 
 ### Fields
 
-- `.isCallable` // Flag that indicates whether calls (static or non-static) can be made.
-- `.isReadonly` // // Flag that indicates whether only static calls are allowed (false if non-static calls are possible).
 - `.address` // Address of contract.
+- `.isCallable` // Flag that indicates whether calls (static or non-static) can be made.
+- `.isReadonly` // Flag that indicates whether only static calls are allowed (false if non-static calls are possible).
 - `.interface` // Ethers contract interface.
-- `.contract` // 'Bare' ethers contract.
+- `.contract` // 'Bare' ethers Contract.
+- `.provider` // Ethers Provider.
+- `.signer` // Ethers Signer.
 
 ### Methods
 
-- `call<T = unknown>(methodName: string, args?: any[]): Promise<T>` // Performs a single on-chain call for the contract. Throws an error if unable to execute.
-- `(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall` // Creates a `ContractCall` for `MulticallUnit`. Throws an error if unable to create.
+```
+constructor(
+  abi: Interface | InterfaceAbi, // ABI of the contract
+  address?: string, // Address of the contract
+  driver?: Signer | Provider,
+  callsOptions?: CallOptions, // Default call options for each call.
+);
+```
+
+- `call<T = unknown>(methodName: string, args?: any[], options?: CallOptions): Promise<T>` // Performs a single on-chain call for the contract. Throws an error if unable to execute.
+- `getCall(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall` // Creates a `ContractCall` for `MulticallUnit`. Throws an error if unable to create. You can do force replacement with a `callData` parameter.
+
+#### CallOptions
+
+```typescript
+export interface CallOptions {
+  forceMutability?: CallMutability; // By default, Contract/MulticallUnit automatically detects the mutability of the method(s). You can force it.
+  highPriorityTx?: boolean; // If activated, calls as "high priority tx": multiply gasPrice and gasLimit by multiplier. It takes additional requests to get them.
+  priorityOptions?: PriorityCallOptions; // Only matters if `highPriorityTx` is activated
+}
+export interface PriorityCallOptions {
+  asynchronous?: boolean; // Can be a little faster if provider allows (simultaneously getting gasPrice & gasLimit).
+  chainId?: bigint; // Manually set. (Prevents replay attacks by ensuring the transaction is valid only for the intended blockchain network)
+  provideChainId?: boolean; // Automatic - additional async request. (Prevents replay attacks by ensuring the transaction is valid only for the intended blockchain network)
+  multiplier?: number; // Multiplier for gasPrise and gasLimit values.
+}
+```
 
 #### ContractCall
 
 ```typescript
 export type ContractCall = {
-  method: string;
-  target: string;
-  allowFailure: boolean;
-  callData: string;
-  stateMutability: StateMutability;
-  contractInterface: ethers.Interface;
+  method: string; // Name of the method.
+  target: string; // Address of contract.
+  allowFailure: boolean; // Failure allowance - false by default (*).
+  callData: string; // Encoded function data - uses in multicall.
+  stateMutability: StateMutability; // Shows mutability of the method.
+  contractInterface: ethers.Interface; // Interface of the callable contract. Uses for answer decoding.
 };
 export declare enum StateMutability {
   View = 'view',
@@ -132,13 +165,92 @@ export type MulticallTags = Tagable | Tagable[] | Record<Keyable, Tagable>;
 - `.response` // Array of whole response.
 - `.success` // Flag that indicates whether all calls were successful.
 - `.static` // Flag that indicates whether all calls are static (view-only).
+- `.executing` // Flag that indicates if `run()` already executing.
 
 ### Methods
 
-- `clear(): void` // Completely clears the Unit for reuse.
+```
+constructor(
+  driver: Signer | Provider,
+  options?: MulticallOptions, // Default options for the each run.
+  multicallAddress?: string, // You can use any address. Useful for less popular networks.
+);
+```
+
+- `run(options?: MulticallOptions): void` // Completely clears the Unit for reuse.
 - `add(tags: MulticallTags, contractCall: ContractCall): MulticallTags` // Add new call.
 - `run(): Promise<boolean>` // Executes the multicall operation.
 - `getSingle<T>(tags: MulticallTags): T | undefined` // Get single primitive value as result.
-- `getArray<T>(tags: MulticallTags): T | undefined` // Get array as result.
-- `getRaw(tags: MulticallTags): string | TransactionResponse | TransactionReceipt | undefined;` // Get the raw multicall result. Returns TransactionResponse if a mutable call has been processed. Returns TransactionReceipt if the wait flag was turned on.
+- `getArray<T>(tags: MulticallTags, deep?: boolean): T | undefined` // Get array as result.
+- `getRaw(tags: MulticallTags): string | TransactionResponse | TransactionReceipt | undefined;` // Get the raw multicall result. Returns TransactionResponse if a mutable call has been processed. Returns TransactionReceipt if the `waitForTxs` flag was turned on.
 - `isSuccess(tags: MulticallTags): boolean | undefined` // Check if call finished successfully.
+
+#### MulticallOptions
+
+```typescript
+export interface MulticallOptions {
+  maxCallsStack?: number; // The maximum size of one execution. If it overfills, the multicall performs additional executions.
+  forceMutability?: CallMutability; // Allows to force mutability. It will try to call as static or mutable if you want to.
+  waitForTxs?: boolean; // Wait for every transaction. Turned on by default for nonce safety.
+  highPriorityTxs?: boolean; // You can make priority transaction when it is necessary. Requires more calls, but will be processed more quickly.
+  priorityOptions?: PriorityCallOptions; // Only matters if `highPriorityTxs` is turned on.
+}
+export enum CallMutability {
+  Static = 'STATIC',
+  Mutable = 'MUTABLE',
+}
+```
+
+#### Warning
+
+Since in the case of a **mutable call**, the result is not returned but rather **a transaction or a receipt**,
+`getRaw` for a single **call stack** will provide the same information.
+As a result, using `allowFailure` will lead to inconsistent results.
+When using `allowFailure`, _make sure that you do not need to track the outcome of a specific execution_.
+
+## Other
+
+#### Helpers
+
+```typescript
+export declare const priorityCall: (
+  // Function that allows making custom priority calls
+  provider: Provider,
+  signer: Signer,
+  contract: Contract,
+  method: string,
+  args: any[],
+  options: PriorityCallOptions
+) => Promise<TransactionResponse>;
+```
+
+```typescript
+export declare const waitForAddressTxs: (
+  // Function that waits for the end of all users transactions
+  address: string,
+  provider: Provider,
+  delayMs?: number
+) => Promise<void>;
+```
+
+```typescript
+export declare const isStaticMethod: (
+  // Accepts mutability and says if method is static
+  state: StateMutability | string
+) => boolean;
+```
+
+```typescript
+export declare const isStaticArray: (calls: ContractCall[]) => boolean; // Accepts array of ContractCalls and says if all methods are static
+```
+
+#### Entities
+
+```typescript
+export enum Chain { // Contains more than 250 different chains. Supports JS as struct. All of these chains right now supports multicall3.
+  Mainnet = 1,
+  Kovan = 42,
+  Rinkeby = 4,
+  // And other 250+ chains...
+}
+```

@@ -1,5 +1,4 @@
-import { Contract as EthersContract, Signer } from 'ethers';
-import { Provider } from 'ethers';
+import { Contract as EthersContract, Signer, Provider } from 'ethers';
 import { CallMutability } from '../entities/index.js';
 import { DEFAULT_MULTICALL_ALLOW_FAILURE } from '../constants.js';
 import { CONTRACTS_ERRORS } from '../errors/index.js';

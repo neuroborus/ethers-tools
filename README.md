@@ -78,6 +78,11 @@ true
 
 ## Contract
 
+### Description
+
+**Contract** is a parent class for contract classes that includes basic state getters and methods for calling the contract
+directly or obtaining a `ContractCall` for use in **MulticallUnit**. These methods can be parameterized.
+
 ### Driver
 
 The driver is either a `signer` or a `provider`. The contract's ability to make calls depends on it.
@@ -87,8 +92,8 @@ providing an ethers `Signer` (e.g, `Wallet`) as the driver.
 ### Fields
 
 - `.address` // Address of contract.
-- `.isCallable` // Flag that indicates whether calls (static or non-static) can be made.
-- `.isReadonly` // Flag that indicates whether only static calls are allowed (false if non-static calls are possible).
+- `.callable` // Flag that indicates whether calls (static or non-static) can be made.
+- `.readonly` // Flag that indicates whether only static calls are allowed (false if non-static calls are possible).
 - `.interface` // Ethers contract interface.
 - `.contract` // 'Bare' ethers Contract.
 - `.provider` // Ethers Provider.
@@ -145,6 +150,13 @@ export declare enum StateMutability {
 
 ## MulticallUnit
 
+### Description
+
+**MulticallUnit** is a tool that takes a list of calls (`ContractCall`). When the `run()` method is invoked,
+it splits the stored calls into mutable and static, prioritizing mutable calls. It then processes them by stacks.
+The size of the concurrently processed call stack for mutable and static calls can be adjusted separately via
+`MulticallOptions`, along with other parameters.
+
 ### Tags
 
 Tags serve as unique references for your specific calls.
@@ -165,7 +177,7 @@ export type MulticallTags = Tagable | Tagable[] | Record<Keyable, Tagable>;
 - `.response` // Array of whole response.
 - `.success` // Flag that indicates whether all calls were successful.
 - `.static` // Flag that indicates whether all calls are static (view-only).
-- `.executing` // Flag that indicates if `run()` already executing.
+- `.executing` // Flag that indicates if `run()` executing at the moment.
 
 ### Methods
 
@@ -189,9 +201,10 @@ constructor(
 
 ```typescript
 export interface MulticallOptions {
-  maxCallsStack?: number; // The maximum size of one execution. If it overfills, the multicall performs additional executions.
+  maxStaticCallsStack?: number; // The maximum size of one static execution. If it overfills, the multicall performs additional executions. DEFAULT: 50
+  maxMutableCallsStack?: number; // The maximum size of one mutable execution. If it overfills, the multicall performs additional executions. DEFAULT: 10
   forceMutability?: CallMutability; // Allows to force mutability. It will try to call as static or mutable if you want to.
-  waitForTxs?: boolean; // Wait for every transaction. Turned on by default for nonce safety.
+  waitForTxs?: boolean; // Wait for every transaction. Turned on by default for nonce safety. DEFAULT: true
   highPriorityTxs?: boolean; // You can make priority transaction when it is necessary. Requires more calls, but will be processed more quickly.
   priorityOptions?: PriorityCallOptions; // Only matters if `highPriorityTxs` is turned on.
 }

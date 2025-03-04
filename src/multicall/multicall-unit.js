@@ -1,11 +1,12 @@
 import { Multicall3Abi } from '../abis/index.js';
 import {
-  DEFAULT_MULTICALL_CALLS_STACK_LIMIT,
+  DEFAULT_MULTICALL_MUTABLE_CALLS_STACK_LIMIT,
+  DEFAULT_MULTICALL_STATIC_CALLS_STACK_LIMIT,
   MULTICALL_ADDRESS,
 } from '../constants.js';
 import { Contract } from '../contract/index.js';
 import { CallMutability } from '../entities/index.js';
-import { isStaticArray } from '../helpers/index.js';
+import { isStaticArray, splitCalls } from '../helpers/index.js';
 import { MULTICALL_ERRORS } from '../errors/index.js';
 
 const aggregate3 = 'aggregate3';
@@ -60,7 +61,8 @@ export class MulticallUnit extends Contract {
   constructor(driver, options = {}, multicallAddress = MULTICALL_ADDRESS) {
     super(Multicall3Abi, multicallAddress, driver);
     this._options = {
-      maxCallsStack: DEFAULT_MULTICALL_CALLS_STACK_LIMIT,
+      maxStaticCallsStack: DEFAULT_MULTICALL_STATIC_CALLS_STACK_LIMIT,
+      maxMutableCallsStack: DEFAULT_MULTICALL_MUTABLE_CALLS_STACK_LIMIT,
       waitForTxs: true, // The safest way to handle nonce in transactions
       ...options,
     };
@@ -218,32 +220,74 @@ export class MulticallUnit extends Contract {
     try {
       this._isExecuting = true;
       this._lastSuccess = undefined;
-      this._response = [];
       const tags = this.tags;
       const calls = this.calls;
+      this._response = Array(tags.length).fill([undefined, null]);
 
-      for (let i = 0; i < calls.length; i += runOptions.maxCallsStack) {
-        const endIndex = Math.min(i + runOptions.maxCallsStack, calls.length);
-        const iterationCalls = calls.slice(i, endIndex); // half-opened interval
+      let staticCalls;
+      let staticIndexes;
+      let mutableCalls;
+      let mutableIndexes;
 
-        const isStatic = runOptions.forceMutability
-          ? runOptions.forceMutability === CallMutability.Static
-          : isStaticArray(iterationCalls);
-
-        const iterationResponse = await this._processCalls(
-          iterationCalls,
-          isStatic,
-          runOptions
-        );
-        this._response.push(...iterationResponse);
+      if (runOptions.forceMutability) {
+        if (runOptions.forceMutability === CallMutability.Static) {
+          staticCalls = calls;
+          staticIndexes = Array.from({ length: calls.length }, (_, i) => i);
+          mutableCalls = [];
+          mutableIndexes = [];
+        } else {
+          staticCalls = [];
+          staticIndexes = [];
+          mutableCalls = calls;
+          mutableIndexes = Array.from({ length: calls.length }, (_, i) => i);
+        }
+      } else {
+        const split = splitCalls(calls);
+        staticCalls = split.staticCalls;
+        staticIndexes = split.staticIndexes;
+        mutableCalls = split.mutableCalls;
+        mutableIndexes = split.mutableIndexes;
       }
 
-      this._response.forEach(([success, data], index) => {
-        const tag = tags[index];
-        if (!success) this._lastSuccess = false;
-        this._rawData.set(tag, data);
-        this._callsSuccess.set(tag, success);
-      });
+      // Process mutable
+      for (
+        let i = 0;
+        i < mutableCalls.length;
+        i += runOptions.maxMutableCallsStack
+      ) {
+        const border = Math.min(
+          i + runOptions.maxMutableCallsStack,
+          mutableCalls.length
+        );
+        const iterationCalls = mutableCalls.slice(i, border); // half-opened interval
+        const iterationIndexes = mutableIndexes.slice(i, border); // half-opened interval
+
+        const iterationResponse = await this._processMutableCalls(
+          iterationCalls,
+          runOptions
+        );
+
+        this._saveResponse(iterationResponse, iterationIndexes, tags);
+      }
+
+      // Process static
+      for (
+        let i = 0;
+        i < staticCalls.length;
+        i += runOptions.maxStaticCallsStack
+      ) {
+        const border = Math.min(
+          i + runOptions.maxStaticCallsStack,
+          staticCalls.length
+        );
+        const iterationCalls = staticCalls.slice(i, border); // half-opened interval
+        const iterationIndexes = staticIndexes.slice(i, border); // half-opened interval
+
+        const iterationResponse =
+          await this._processStaticCalls(iterationCalls);
+
+        this._saveResponse(iterationResponse, iterationIndexes, tags);
+      }
     } catch (error) {
       throw error;
     } finally {
@@ -255,37 +299,62 @@ export class MulticallUnit extends Contract {
   /**
    * @private
    * @param {import('../../types/entities').ContractCall[]} iterationCalls
-   * @param {boolean} isStatic
+   * @returns {Promise<import('../../types/multicall').Response[]>}
+   */
+  async _processStaticCalls(iterationCalls) {
+    const result = await this.call(aggregate3, [iterationCalls], {
+      forceMutability: CallMutability.Static,
+    });
+    this._lastSuccess = !(this._lastSuccess === false);
+
+    return result;
+  }
+
+  /**
+   * @private
+   * @param {import('../../types/entities').ContractCall[]} iterationCalls
    * @param {import('../../types/entities').MulticallOptions} runOptions
    * @returns {Promise<import('../../types/multicall').Response[]>}
    */
-  async _processCalls(iterationCalls, isStatic, runOptions) {
+  async _processMutableCalls(iterationCalls, runOptions) {
     let result;
-    if (isStatic) {
-      result = await this.call(aggregate3, [iterationCalls], {
-        forceMutability: CallMutability.Static,
-      });
-      this._lastSuccess = !(this._lastSuccess === false);
-    } else {
-      const tx = await this.call(aggregate3, [iterationCalls], {
-        forceMutability: CallMutability.Mutable,
-        highPriorityTx: runOptions.highPriorityTxs,
-        priorityOptions: runOptions.priorityOptions,
-      });
-      if (runOptions.waitForTxs) {
-        const receipt = await tx.wait();
-        if (!receipt) {
-          result = Array(iterationCalls.length).fill([false, null]);
-          this._lastSuccess = false;
-        } else {
-          result = Array(iterationCalls.length).fill([true, receipt]);
-          this._lastSuccess = !(this._lastSuccess === false);
-        }
+    const tx = await this.call(aggregate3, [iterationCalls], {
+      forceMutability: CallMutability.Mutable,
+      highPriorityTx: runOptions.highPriorityTxs,
+      priorityOptions: runOptions.priorityOptions,
+    });
+    if (runOptions.waitForTxs) {
+      const receipt = await tx.wait();
+      if (!receipt) {
+        result = Array(iterationCalls.length).fill([false, null]);
+        this._lastSuccess = false;
       } else {
-        result = Array(iterationCalls.length).fill([true, tx]);
+        result = Array(iterationCalls.length).fill([true, receipt]);
         this._lastSuccess = !(this._lastSuccess === false);
       }
+    } else {
+      result = Array(iterationCalls.length).fill([true, tx]);
+      this._lastSuccess = !(this._lastSuccess === false);
     }
     return result;
+  }
+
+  /**
+   * @private
+   * @param {import('../../types/multicall').Response[]} iterationResponse
+   * @param {number[]} iterationIndexes
+   * @param {import('../../types/entities').MulticallTags[]} globalTags
+   * @returns {void}
+   */
+  _saveResponse(iterationResponse, iterationIndexes, globalTags) {
+    iterationResponse.forEach((el, index) => {
+      const [success, data] = el;
+      const globalIndex = iterationIndexes[index];
+      const tag = globalTags[globalIndex];
+      if (!success) this._lastSuccess = false;
+      this._rawData.set(tag, data);
+      this._callsSuccess.set(tag, success);
+      this._response[globalIndex] = el;
+    });
   }
 }

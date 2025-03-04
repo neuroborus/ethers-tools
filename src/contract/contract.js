@@ -19,13 +19,13 @@ export class Contract {
    * @public
    * @type {boolean}
    */
-  isCallable;
+  callable;
   /**
    * @readonly
    * @public
    * @type {boolean}
    */
-  isReadonly;
+  readonly;
   /**
    * @readonly
    * @public
@@ -59,9 +59,9 @@ export class Contract {
   ) {
     this.address = address;
     this._driver = driver;
-    this.isCallable = !!address && !!driver;
-    this.isReadonly =
-      !this.isCallable || !(driver && typeof driver.getAddress === 'function'); // if Signer
+    this.callable = !!address && !!driver;
+    this.readonly =
+      !this.callable || !(driver && typeof driver.getAddress === 'function'); // if Signer
     this.contract = new EthersContract(address, abi, driver);
     this._callsOptions = callsOptions;
   }
@@ -104,8 +104,7 @@ export class Contract {
    * @returns {T}
    */
   async call(methodName, args = [], options = {}) {
-    if (!this.isCallable)
-      throw CONTRACTS_ERRORS.NON_CALLABLE_CONTRACT_INVOCATION;
+    if (!this.callable) throw CONTRACTS_ERRORS.NON_CALLABLE_CONTRACT_INVOCATION;
     const method = this.contract[methodName];
 
     if (!method) throw CONTRACTS_ERRORS.METHOD_NOT_DEFINED(methodName);
@@ -126,7 +125,7 @@ export class Contract {
     if (isStatic) {
       return method.staticCall(...args);
     } else {
-      if (this.isReadonly) throw CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION;
+      if (this.readonly) throw CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION;
       let tx;
       if (callOptions.highPriorityTx) {
         const provider = this._driver.provider;

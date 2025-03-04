@@ -9,8 +9,8 @@ import { CallOptions, ContractCall } from '../entities';
 
 export declare class Contract {
   public readonly contract: EthersContract;
-  public readonly isCallable: boolean;
-  public readonly isReadonly: boolean;
+  public readonly callable: boolean;
+  public readonly readonly: boolean;
   public readonly address: string;
   protected readonly _driver?: Provider | Signer;
   protected readonly _callsOptions: CallOptions;

@@ -72,7 +72,7 @@ describe('E2E Test MulticallUnit', () => {
 
   test('Test of maxCallsStack', async () => {
     const unit = new MulticallUnit(PROVIDER, {
-      maxCallsStack: 3,
+      maxStaticCallsStack: 3,
     });
     const listCall = registry.getAddressesProvidersListCall();
     const ownerCall = registry.getOwnerCall();

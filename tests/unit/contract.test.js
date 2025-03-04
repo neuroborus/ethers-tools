@@ -8,13 +8,13 @@ const registryWallet = new RegistryContract(WALLET);
 
 describe('Test Contract', () => {
   test('Provider should be readonly & callable', () => {
-    expect(registryProvider.isReadonly).to.be.true;
-    expect(registryProvider.isCallable).to.be.true;
+    expect(registryProvider.readonly).to.be.true;
+    expect(registryProvider.callable).to.be.true;
   });
 
   test('Wallet should be non-readonly & callable', () => {
-    expect(registryWallet.isReadonly).to.be.false;
-    expect(registryWallet.isCallable).to.be.true;
+    expect(registryWallet.readonly).to.be.false;
+    expect(registryWallet.callable).to.be.true;
   });
 
   test('Provider should throw error if write', () => {

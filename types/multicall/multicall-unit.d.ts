@@ -8,8 +8,8 @@ import { Contract } from '../contract';
 import { ContractCall, MulticallOptions, MulticallTags } from '../entities';
 
 export type Response = [
-  success: boolean,
-  rawData: string | TransactionResponse | TransactionReceipt,
+  success: boolean | undefined,
+  rawData: string | TransactionResponse | TransactionReceipt | null,
 ];
 export interface DecodableData {
   call: ContractCall;
@@ -52,9 +52,16 @@ export declare class MulticallUnit extends Contract {
   public getArray<T>(tags: MulticallTags, deep?: boolean): T | undefined;
 
   public run(options?: MulticallOptions): Promise<boolean>;
-  private _processCalls(
+  private _processStaticCalls(
+    iterationCalls: ContractCall[]
+  ): Promise<Response[]>;
+  private _processMutableCalls(
     iterationCalls: ContractCall[],
-    isStatic: boolean,
     runOptions: MulticallOptions
+  ): Promise<Response[]>;
+  private _saveResponse(
+    iterationResponse: Response[],
+    iterationIndexes: number[],
+    globalTags: MulticallTags[]
   ): Promise<Response[]>;
 }

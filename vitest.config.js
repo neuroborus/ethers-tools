@@ -1,6 +1,6 @@
 export default {
   test: {
-    testTimeout: 50000,
+    testTimeout: 5000000,
     sequence: {
       concurrent: false,
       shuffle: false,

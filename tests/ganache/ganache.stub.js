@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { Contract } from '../../src/index.js';
 import StorageAbi from './simple-storage.abi.json';
 
-// export const MULTICALL_ADDRESS = '0x3755796B1C0C92232EbA3Bbe8718d0df4B47294c';
+export const MULTICALL_ADDRESS = '0x3755796B1C0C92232EbA3Bbe8718d0df4B47294c';
 export const SIMPLE_STORAGE_ADDRESS =
   '0xE31cA8784322e7eC129DC37e0b91b4Cdad3ED4E4';
 

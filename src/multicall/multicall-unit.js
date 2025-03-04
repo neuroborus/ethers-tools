@@ -6,8 +6,9 @@ import {
 } from '../constants.js';
 import { Contract } from '../contract/index.js';
 import { CallMutability } from '../entities/index.js';
-import { isStaticArray, splitCalls } from '../helpers/index.js';
+import { isStaticArray } from '../helpers/index.js';
 import { MULTICALL_ERRORS } from '../errors/index.js';
+import { multicallSplitCalls } from './multicall-split-calls.js';
 
 const aggregate3 = 'aggregate3';
 
@@ -242,7 +243,7 @@ export class MulticallUnit extends Contract {
           mutableIndexes = Array.from({ length: calls.length }, (_, i) => i);
         }
       } else {
-        const split = splitCalls(calls);
+        const split = multicallSplitCalls(calls);
         staticCalls = split.staticCalls;
         staticIndexes = split.staticIndexes;
         mutableCalls = split.mutableCalls;

@@ -80,20 +80,20 @@ true
 
 ### Description
 
-**Contract** is a parent class for contract classes that includes basic state getters and methods for calling the contract
+[Contract](/src/contract/contract.js) is a parent class for contract classes that includes basic state getters and methods for calling the contract
 directly or obtaining a `ContractCall` for use in **MulticallUnit**. These methods can be parameterized.
 
 ### Driver
 
 The driver is either a `signer` or a `provider`. The contract's ability to make calls depends on it.
-An error will occur if you try to call the contract without it, especially when making a non-static call without
+An error will occur if you try to call the contract without it, especially when making a mutable call without
 providing an ethers `Signer` (e.g, `Wallet`) as the driver.
 
 ### Fields
 
 - `.address` // Address of contract.
-- `.callable` // Flag that indicates whether calls (static or non-static) can be made.
-- `.readonly` // Flag that indicates whether only static calls are allowed (false if non-static calls are possible).
+- `.callable` // Flag that indicates whether calls (static or mutable) can be made.
+- `.readonly` // Flag that indicates whether only static calls are allowed (false if mutable calls are possible).
 - `.interface` // Ethers contract interface.
 - `.contract` // 'Bare' ethers Contract.
 - `.provider` // Ethers Provider.
@@ -135,7 +135,7 @@ export interface PriorityCallOptions {
 export type ContractCall = {
   method: string; // Name of the method.
   target: string; // Address of contract.
-  allowFailure: boolean; // Failure allowance - false by default (*).
+  allowFailure: boolean; // Failure allowance - false by default (*). DEFAULT: false
   callData: string; // Encoded function data - uses in multicall.
   stateMutability: StateMutability; // Shows mutability of the method.
   contractInterface: ethers.Interface; // Interface of the callable contract. Uses for answer decoding.
@@ -152,7 +152,7 @@ export declare enum StateMutability {
 
 ### Description
 
-**MulticallUnit** is a tool that takes a list of calls (`ContractCall`). When the `run()` method is invoked,
+[MulticallUnit](/src/multicall/multicall-unit.js) is a tool that takes a calls (`ContractCall`). When the `run()` method is invoked,
 it splits the stored calls into mutable and static, prioritizing mutable calls. It then processes them by stacks.
 The size of the concurrently processed call stack for mutable and static calls can be adjusted separately via
 `MulticallOptions`, along with other parameters.
@@ -176,7 +176,7 @@ export type MulticallTags = Tagable | Tagable[] | Record<Keyable, Tagable>;
 - `.calls` // Array of provided calls.
 - `.response` // Array of whole response.
 - `.success` // Flag that indicates whether all calls were successful.
-- `.static` // Flag that indicates whether all calls are static (view-only).
+- `.static` // Flag that indicates whether all calls are static (not mutable).
 - `.executing` // Flag that indicates if `run()` executing at the moment.
 
 ### Methods
@@ -189,7 +189,7 @@ constructor(
 );
 ```
 
-- `run(options?: MulticallOptions): void` // Completely clears the Unit for reuse.
+- `clear(): void` // Completely clears the Unit for reuse.
 - `add(tags: MulticallTags, contractCall: ContractCall): MulticallTags` // Add new call.
 - `run(): Promise<boolean>` // Executes the multicall operation.
 - `getSingle<T>(tags: MulticallTags): T | undefined` // Get single primitive value as result.
@@ -214,7 +214,7 @@ export enum CallMutability {
 }
 ```
 
-#### Warning
+#### Warning (\*)
 
 Since in the case of a **mutable call**, the result is not returned but rather **a transaction or a receipt**,
 `getRaw` for a single **call stack** will provide the same information.

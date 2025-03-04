@@ -1,11 +1,11 @@
-import { isStaticMethod } from './is-static.js';
+import { isStaticMethod } from '../helpers/index.js';
 
 /**
  * @public
- * @param {import('../../types/entities').ContractCall[]} calls
- * @returns {import('../../types/entities').SplitCalls}
+ * @param {import('../../types/entities/index.js').ContractCall[]} calls
+ * @returns {import('../../types/entities/index.js').SplitCalls}
  */
-export const splitCalls = (calls) =>
+export const multicallSplitCalls = (calls) =>
   calls.reduce(
     (acc, call, index) => {
       if (isStaticMethod(call.stateMutability)) {

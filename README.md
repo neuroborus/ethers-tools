@@ -12,7 +12,7 @@ JSDoc is provided.
 
 ### Installation
 
-First, you will need **ethers**. Then, you can install:
+First, you will need **ethers** v6. Then, you can install:
 
 `npm i ethers-tools`  
 `yarn add ethers-tools`  
@@ -25,12 +25,13 @@ import { ethers } from 'ethers';
 import { Contract, ContractCall, MulticallUnit } from 'ethers-tools';
 
 const RPC_URL = 'https://eth.llamarpc.com';
+const ADDRESS = '0xbaA999AC55EAce41CcAE355c77809e68Bb345170';
 const PROVIDER = new ethers.JsonRpcProvider(RPC_URL);
 
 const RegistryAbi = '<abi>';
 class RegistryContract extends Contract {
-  constructor() {
-    super(RegistryAbi, '0xbaA999AC55EAce41CcAE355c77809e68Bb345170', PROVIDER);
+  constructor() { // Can be passed here
+    super(RegistryAbi, ADDRESS, PROVIDER);
   }
 
   getAddressesProvidersListCall(): ContractCall {
@@ -48,7 +49,7 @@ class RegistryContract extends Contract {
 
 // ....
 
-const registry = new RegistryContract(PROVIDER);
+const registry = new RegistryContract();
 const unit = new MulticallUnit(PROVIDER); // Unit-of-Work - like
 
 const listCallTag = 'listCall';
@@ -85,7 +86,7 @@ directly or obtaining a `ContractCall` for use in **MulticallUnit**. These metho
 
 ### Driver
 
-The driver is either a `signer` or a `provider`. The contract's ability to make calls depends on it.
+The driver is either a `Signer` or a `Provider`. The contract's ability to make calls depends on it.
 An error will occur if you try to call the contract without it, especially when making a mutable call without
 providing an ethers `Signer` (e.g, `Wallet`) as the driver.
 

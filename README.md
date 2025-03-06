@@ -12,7 +12,7 @@ JSDoc is provided.
 
 ### Installation
 
-First, you will need **ethers**. Then, you can install:
+First, you will need **ethers** v6. Then, you can install:
 
 `npm i ethers-tools`  
 `yarn add ethers-tools`  
@@ -25,12 +25,14 @@ import { ethers } from 'ethers';
 import { Contract, ContractCall, MulticallUnit } from 'ethers-tools';
 
 const RPC_URL = 'https://eth.llamarpc.com';
+const ADDRESS = '0xbaA999AC55EAce41CcAE355c77809e68Bb345170';
 const PROVIDER = new ethers.JsonRpcProvider(RPC_URL);
 
 const RegistryAbi = '<abi>';
 class RegistryContract extends Contract {
   constructor() {
-    super(RegistryAbi, '0xbaA999AC55EAce41CcAE355c77809e68Bb345170', PROVIDER);
+    // Can be passed here
+    super(RegistryAbi, ADDRESS, PROVIDER);
   }
 
   getAddressesProvidersListCall(): ContractCall {
@@ -46,9 +48,9 @@ class RegistryContract extends Contract {
   }
 }
 
-// ....
+// USING MULTICALL EXAMPLE
 
-const registry = new RegistryContract(PROVIDER);
+const registry = new RegistryContract();
 const unit = new MulticallUnit(PROVIDER); // Unit-of-Work - like
 
 const listCallTag = 'listCall';
@@ -66,6 +68,31 @@ const directOwner = await registry.owner();
 console.log(result);
 console.log(owner === directOwner);
 console.log(JSON.stringify(list));
+
+// LISTENING EVENTS EXAMPLE
+
+const data: Set<{ address: string; id: bigint }> = new Set();
+// Start listening
+registry.listenEvent(
+  'AddressesProviderRegistered',
+  (addressesProvider: string, id: bigint) => {
+    data.add({
+      addressesProvider,
+      id,
+    });
+  }
+);
+// Find historical data for the last 30000 blocks
+for await (const log of registry.getLogsStream(-30000, [
+  'AddressesProviderRegistered',
+])) {
+  if (!log) continue;
+
+  const parsedLog = registry.contract.interface.parseLog(log);
+  if (parsedLog) {
+    data.add(parsedLog.args);
+  }
+}
 ```
 
 #### Expected output
@@ -80,20 +107,20 @@ true
 
 ### Description
 
-**Contract** is a parent class for contract classes that includes basic state getters and methods for calling the contract
+[Contract](/src/contract/contract.js) is a parent class for contract classes that includes basic state getters and methods for calling the contract
 directly or obtaining a `ContractCall` for use in **MulticallUnit**. These methods can be parameterized.
 
 ### Driver
 
-The driver is either a `signer` or a `provider`. The contract's ability to make calls depends on it.
-An error will occur if you try to call the contract without it, especially when making a non-static call without
+The driver is either a `Signer` or a `Provider`. The contract's ability to make calls depends on it.
+An error will occur if you try to call the contract without it, especially when making a mutable call without
 providing an ethers `Signer` (e.g, `Wallet`) as the driver.
 
 ### Fields
 
 - `.address` // Address of contract.
-- `.callable` // Flag that indicates whether calls (static or non-static) can be made.
-- `.readonly` // Flag that indicates whether only static calls are allowed (false if non-static calls are possible).
+- `.callable` // Flag that indicates whether calls (static or mutable) can be made.
+- `.readonly` // Flag that indicates whether only static calls are allowed (false if mutable calls are possible).
 - `.interface` // Ethers contract interface.
 - `.contract` // 'Bare' ethers Contract.
 - `.provider` // Ethers Provider.
@@ -102,24 +129,29 @@ providing an ethers `Signer` (e.g, `Wallet`) as the driver.
 ### Methods
 
 ```
-constructor(
-  abi: Interface | InterfaceAbi, // ABI of the contract
-  address?: string, // Address of the contract
-  driver?: Signer | Provider,
-  callsOptions?: CallOptions, // Default call options for each call.
-);
+  constructor(
+    abi: Interface | InterfaceAbi,
+    address?: string,
+    driver?: Signer | Provider,
+    options?: ContractOptions
+  );
 ```
 
 - `call<T = unknown>(methodName: string, args?: any[], options?: CallOptions): Promise<T>` // Performs a single on-chain call for the contract. Throws an error if unable to execute.
 - `getCall(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall` // Creates a `ContractCall` for `MulticallUnit`. Throws an error if unable to create. You can do force replacement with a `callData` parameter.
+- `listenEvent(eventName: string, listener: Listener): Promise<Contract>` // Creates event listener on the contract. WebsocketProvider is required.
+- `getLogs(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): Promise<Log[]>` // Synchronous log retrieval. 'fromBlocks' can have a minus sign, which means 'n blocks ago'.
+- `getLogsStream(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): AsyncGenerator<Log, void, unknown>` // Asynchronous way to getting logs
 
-#### CallOptions
+#### ContractOptions
 
 ```typescript
-export interface CallOptions {
+export interface ContractOptions {
   forceMutability?: CallMutability; // By default, Contract/MulticallUnit automatically detects the mutability of the method(s). You can force it.
-  highPriorityTx?: boolean; // If activated, calls as "high priority tx": multiply gasPrice and gasLimit by multiplier. It takes additional requests to get them.
-  priorityOptions?: PriorityCallOptions; // Only matters if `highPriorityTx` is activated
+  highPriorityTxs?: boolean; // If activated, calls as "high priority tx": multiply gasPrice and gasLimit by multiplier. It takes additional requests to get them.
+  priorityOptions?: PriorityCallOptions; // Only matters if `highPriorityTx` is activated.
+  logsBlocksStep?: number; // Quantity of processed blocks per iteration during log parsing.
+  logsDelayMs?: number; // Delay between log parsing iterations.
 }
 export interface PriorityCallOptions {
   asynchronous?: boolean; // Can be a little faster if provider allows (simultaneously getting gasPrice & gasLimit).
@@ -135,7 +167,7 @@ export interface PriorityCallOptions {
 export type ContractCall = {
   method: string; // Name of the method.
   target: string; // Address of contract.
-  allowFailure: boolean; // Failure allowance - false by default (*).
+  allowFailure: boolean; // Failure allowance - false by default (*). DEFAULT: false
   callData: string; // Encoded function data - uses in multicall.
   stateMutability: StateMutability; // Shows mutability of the method.
   contractInterface: ethers.Interface; // Interface of the callable contract. Uses for answer decoding.
@@ -148,11 +180,20 @@ export declare enum StateMutability {
 }
 ```
 
+#### ContractGetLogsOptions
+
+```typescript
+export interface ContractGetLogsOptions {
+  blocksStep?: number; // Quantity of processed blocks per iteration during log parsing
+  delayMs?: number; // Delay between log parsing iterations.
+}
+```
+
 ## MulticallUnit
 
 ### Description
 
-**MulticallUnit** is a tool that takes a list of calls (`ContractCall`). When the `run()` method is invoked,
+[MulticallUnit](/src/multicall/multicall-unit.js) is a tool that takes a calls (`ContractCall`). When the `run()` method is invoked,
 it splits the stored calls into mutable and static, prioritizing mutable calls. It then processes them by stacks.
 The size of the concurrently processed call stack for mutable and static calls can be adjusted separately via
 `MulticallOptions`, along with other parameters.
@@ -176,7 +217,7 @@ export type MulticallTags = Tagable | Tagable[] | Record<Keyable, Tagable>;
 - `.calls` // Array of provided calls.
 - `.response` // Array of whole response.
 - `.success` // Flag that indicates whether all calls were successful.
-- `.static` // Flag that indicates whether all calls are static (view-only).
+- `.static` // Flag that indicates whether all calls are static (not mutable).
 - `.executing` // Flag that indicates if `run()` executing at the moment.
 
 ### Methods
@@ -189,7 +230,7 @@ constructor(
 );
 ```
 
-- `run(options?: MulticallOptions): void` // Completely clears the Unit for reuse.
+- `clear(): void` // Completely clears the Unit for reuse.
 - `add(tags: MulticallTags, contractCall: ContractCall): MulticallTags` // Add new call.
 - `run(): Promise<boolean>` // Executes the multicall operation.
 - `getSingle<T>(tags: MulticallTags): T | undefined` // Get single primitive value as result.
@@ -214,7 +255,7 @@ export enum CallMutability {
 }
 ```
 
-#### Warning
+#### Warning (\*)
 
 Since in the case of a **mutable call**, the result is not returned but rather **a transaction or a receipt**,
 `getRaw` for a single **call stack** will provide the same information.

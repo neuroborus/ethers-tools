@@ -1,4 +1,4 @@
-import { ContractCall } from './contract-call';
+import { ContractCall } from '../entities';
 
 export interface SplitCalls {
   staticCalls: ContractCall[];

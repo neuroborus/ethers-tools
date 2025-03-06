@@ -12,4 +12,8 @@ export const CONTRACTS_ERRORS = {
     new Error(
       `Fragment for method "${methodName}" was not found on the contract!`
     ),
+  MISSING_WEBSOCKET_PROVIDER: new Error(
+    'Attempted to listen for contract events, but no WebSocketProvider was provided!'
+  ),
+  MISSING_PROVIDER: new Error('A provider is required, but none was provided!'),
 };

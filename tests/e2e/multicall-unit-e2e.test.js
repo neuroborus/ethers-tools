@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { MulticallUnit } from '../../src';
-import { PROVIDER, RegistryContract } from '../stub.js';
+import { JSON_PROVIDER, RegistryContract } from '../stub.js';
 
 export const registry = new RegistryContract();
 
@@ -8,7 +8,7 @@ describe('E2E Test MulticallUnit', () => {
   let prevOwner;
   let prevList;
   test('Test of MulticallUnit', async () => {
-    const unit = new MulticallUnit(PROVIDER);
+    const unit = new MulticallUnit(JSON_PROVIDER);
     const listCall = registry.getAddressesProvidersListCall();
     const listCallTag = 'listCall';
     unit.add(listCallTag, listCall);
@@ -31,7 +31,7 @@ describe('E2E Test MulticallUnit', () => {
   });
 
   test('Test of MulticallTags', async () => {
-    const unit = new MulticallUnit(PROVIDER);
+    const unit = new MulticallUnit(JSON_PROVIDER);
     const recTagsTemplate = {
       protocol: 'aave',
       contract: 'registry',
@@ -71,7 +71,7 @@ describe('E2E Test MulticallUnit', () => {
   });
 
   test('Test of maxCallsStack', async () => {
-    const unit = new MulticallUnit(PROVIDER, {
+    const unit = new MulticallUnit(JSON_PROVIDER, {
       maxStaticCallsStack: 3,
     });
     const listCall = registry.getAddressesProvidersListCall();

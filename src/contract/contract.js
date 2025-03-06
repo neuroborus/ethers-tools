@@ -1,8 +1,17 @@
-import { Contract as EthersContract, Signer, Provider } from 'ethers';
+import {
+  Contract as EthersContract,
+  Provider,
+  Signer,
+  WebSocketProvider,
+} from 'ethers';
 import { CallMutability } from '../entities/index.js';
-import { DEFAULT_MULTICALL_ALLOW_FAILURE } from '../constants.js';
-import { CONTRACTS_ERRORS } from '../errors/index.js';
+import {
+  DEFAULT_LOGS_BLOCKS_STEP,
+  DEFAULT_LOGS_DELAY_MS,
+  DEFAULT_MULTICALL_ALLOW_FAILURE,
+} from '../constants.js';
 import { isStaticMethod, priorityCall } from '../helpers/index.js';
+import { CONTRACTS_ERRORS } from '../errors/index.js';
 
 /**
  * Base contract.
@@ -41,21 +50,21 @@ export class Contract {
   /**
    * @readonly
    * @protected
-   * @type {import('../../types/entities').CallOptions}
+   * @type {import('../../types/entities').ContractOptions}
    */
-  _callsOptions;
+  _options;
 
   /**
    * @param {import('ethers').Interface | import('ethers').InterfaceAbi} abi
    * @param {string} [address]
    * @param {import('ethers').Provider | import('ethers').Signer | undefined} [driver]
-   * @param {import('../../types/entities').CallOptions} [callsOptions]
+   * @param {import('../../types/entities').ContractOptions} [options]
    */
   constructor(
     abi,
     address = '0x0000000000000000000000000000000000000000',
     driver,
-    callsOptions = {}
+    options = {}
   ) {
     this.address = address;
     this._driver = driver;
@@ -63,7 +72,7 @@ export class Contract {
     this.readonly =
       !this.callable || !(driver && typeof driver.getAddress === 'function'); // if Signer
     this.contract = new EthersContract(address, abi, driver);
-    this._callsOptions = callsOptions;
+    this._options = options;
   }
 
   /**
@@ -100,7 +109,7 @@ export class Contract {
    * @public
    * @param {string} methodName
    * @param {any[]} [args]
-   * @param {import('../../types/entities').CallOptions} [options]
+   * @param {import('../../types/entities').ContractCallOptions} [options]
    * @returns {T}
    */
   async call(methodName, args = [], options = {}) {
@@ -114,7 +123,9 @@ export class Contract {
       throw CONTRACTS_ERRORS.FRAGMENT_NOT_DEFINED(methodName);
 
     const callOptions = {
-      ...this._callsOptions,
+      forceMutability: this._options.forceMutability,
+      highPriorityTx: this._options.highPriorityTxs,
+      priorityOptions: this._options.priorityOptions,
       ...options,
     };
 
@@ -167,5 +178,94 @@ export class Contract {
       contractInterface: this.interface,
       ...callData,
     };
+  }
+
+  /**
+   * @public
+   * @param {string} eventName
+   * @param {import('ethers').Listener} listener
+   * @returns {Promise<import('ethers').Contract>}
+   */
+  async listenEvent(eventName, listener) {
+    if (!this.provider) throw CONTRACTS_ERRORS.MISSING_PROVIDER;
+    if (!(this.provider instanceof WebSocketProvider))
+      throw CONTRACTS_ERRORS.MISSING_WEBSOCKET_PROVIDER;
+
+    return this.contract.on(eventName, listener);
+  }
+
+  /**
+   * @public
+   * @param {number} fromBlock
+   * @param {number | 'latest'} [toBlock]
+   * @param {string[]} [eventsNames]
+   * @param {import('../../types/entities').ContractGetLogsOptions} [options]
+   * @returns {Promise<import('ethers').Log[]>}
+   */
+  async getLogs(fromBlock, eventsNames = [], toBlock = 'latest', options = {}) {
+    const logs = [];
+    for await (const log of this.getLogsStream(
+      fromBlock,
+      eventsNames,
+      toBlock,
+      options
+    )) {
+      logs.push(log);
+    }
+
+    return logs;
+  }
+
+  /**
+   * @public
+   * @param {number} fromBlock
+   * @param {number | 'latest'} [toBlock]
+   * @param {string[]} [eventsNames]
+   * @param {import('../../types/entities').ContractGetLogsOptions} [options]
+   * @returns {Promise<import('ethers').Log[]>}
+   */
+  async *getLogsStream(
+    fromBlock,
+    eventsNames = [],
+    toBlock = 'latest',
+    options = {}
+  ) {
+    if (!this.callable) throw CONTRACTS_ERRORS.NON_CALLABLE_CONTRACT_INVOCATION;
+
+    const streamOptions = {
+      blocksStep: this._options.logsBlocksStep || DEFAULT_LOGS_BLOCKS_STEP,
+      delayMs: this._options.logsDelayMs || DEFAULT_LOGS_DELAY_MS,
+      ...options,
+    };
+
+    const topics = eventsNames.map(
+      (event) => this.contract.getEvent(event).fragment.topicHash
+    );
+
+    const finToBlock =
+      toBlock === 'latest' ? await this.provider.getBlockNumber() : toBlock;
+    const finFromBlock = fromBlock < 0 ? finToBlock + fromBlock : fromBlock;
+
+    for (
+      let from = finFromBlock;
+      from < finToBlock;
+      from += streamOptions.blocksStep
+    ) {
+      const to = Math.min(from + streamOptions.blocksStep, finToBlock);
+      const localLogs = await this.provider.getLogs({
+        fromBlock: from,
+        toBlock: to,
+        address: this.address,
+        topics: topics.length ? [topics] : undefined,
+      });
+
+      for (const log of localLogs) {
+        yield log;
+      }
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, streamOptions.delayMs)
+      );
+    }
   }
 }

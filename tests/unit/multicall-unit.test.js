@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest';
 import { CONTRACTS_ERRORS, MULTICALL_ERRORS } from '../../src/errors/index.js';
 import { MulticallUnit } from '../../src/index.js';
-import { PROVIDER, RegistryContract } from '../stub.js';
+import { JSON_PROVIDER, RegistryContract } from '../stub.js';
 
-const registryProvider = new RegistryContract(PROVIDER);
-const multicallProvider = new MulticallUnit(PROVIDER);
+const registryProvider = new RegistryContract(JSON_PROVIDER);
+const multicallProvider = new MulticallUnit(JSON_PROVIDER);
 
 describe('Test Multicall Unit', () => {
   test('Multicall should recognize static properly', () => {

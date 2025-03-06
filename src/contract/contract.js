@@ -222,7 +222,7 @@ export class Contract {
    * @param {number | 'latest'} [toBlock]
    * @param {string[]} [eventsNames]
    * @param {import('../../types/entities').ContractGetLogsOptions} [options]
-   * @returns {Promise<import('ethers').Log[]>}
+   * @returns {AsyncGenerator<import('ethers').Log, void, unknown>}
    */
   async *getLogsStream(
     fromBlock,

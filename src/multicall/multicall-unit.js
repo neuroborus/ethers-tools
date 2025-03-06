@@ -1,13 +1,14 @@
 import { Multicall3Abi } from '../abis/index.js';
+import { CallMutability } from '../entities/index.js';
 import {
   DEFAULT_MULTICALL_MUTABLE_CALLS_STACK_LIMIT,
   DEFAULT_MULTICALL_STATIC_CALLS_STACK_LIMIT,
   MULTICALL_ADDRESS,
 } from '../constants.js';
-import { Contract } from '../contract/index.js';
-import { CallMutability } from '../entities/index.js';
 import { isStaticArray } from '../helpers/index.js';
 import { MULTICALL_ERRORS } from '../errors/index.js';
+import { Contract } from '../contract/index.js';
+import { multicallNormalizeTags } from './multicall-normalize-tags.js';
 import { multicallSplitCalls } from './multicall-split-calls.js';
 
 const aggregate3 = 'aggregate3';
@@ -22,25 +23,25 @@ export class MulticallUnit extends Contract {
   /**
    * @protected
    * @readonly
-   * @type {Map<import('../../types/entities').MulticallTags, ContractCall>}
+   * @type {Map<import('../../types/entities').Tagable, ContractCall>}
    */
   _units = new Map();
   /**
    * @protected
    * @readonly
-   * @type {import('../../types/multicall').Response[]}
+   * @type {import('../../types/multicall').MulticallResponse[]}
    */
   _response = [];
   /**
    * @protected
    * @readonly
-   * @type {Map<import('../../types/entities').MulticallTags, string>}
+   * @type {Map<import('../../types/entities').Tagable, string>}
    */
   _rawData = new Map();
   /**
    * @protected
    * @readonly
-   * @type {Map<import('../../types/entities').MulticallTags, boolean>}
+   * @type {Map<import('../../types/entities').Tagable, boolean>}
    */
   _callsSuccess = new Map();
   /**
@@ -88,13 +89,13 @@ export class MulticallUnit extends Contract {
    * @returns {import('../../types/entities').MulticallTags}
    */
   add(tags, contractCall) {
-    this._units.set(tags, contractCall);
+    this._units.set(multicallNormalizeTags(tags), contractCall);
     return tags;
   }
 
   /**
    * @public
-   * @returns {import('../../types/entities').MulticallTags[]}
+   * @returns {import('../../types/entities').Tagable[]}
    */
   get tags() {
     return Array.from(this._units.keys()); // The order is guaranteed
@@ -108,7 +109,7 @@ export class MulticallUnit extends Contract {
   }
   /**
    * @public
-   * @returns {import('../../types/multicall').Response[]}
+   * @returns {import('../../types/multicall').MulticallResponse[]}
    */
   get response() {
     return this._response;
@@ -142,7 +143,7 @@ export class MulticallUnit extends Contract {
    * @returns {boolean | undefined}
    */
   isSuccess(tags) {
-    return this._callsSuccess.get(tags);
+    return this._callsSuccess.get(multicallNormalizeTags(tags));
   }
   /**
    * @public
@@ -150,22 +151,23 @@ export class MulticallUnit extends Contract {
    * @returns {string | import('ethers').TransactionResponse | import('ethers').TransactionReceipt | undefined}
    */
   getRaw(tags) {
-    return this._rawData.get(tags);
+    return this._rawData.get(multicallNormalizeTags(tags));
   }
 
   /**
    * @private
    * @param {import('../../types/entities').MulticallTags} tags
-   * @returns {import('../../types/multicall').DecodableData | null}
+   * @returns {import('../../types/multicall').MulticallDecodableData | null}
    */
   _getDecodableData(tags) {
-    const rawData = this._rawData.get(tags);
-    const call = this._units.get(tags);
+    const nTags = multicallNormalizeTags(tags);
+    const rawData = this._rawData.get(nTags);
+    const call = this._units.get(nTags);
     if (
       !rawData ||
       typeof rawData !== 'string' || // rawData should be a string if it contains decodable data
       !call ||
-      !this.isSuccess(tags)
+      !this.isSuccess(nTags)
     )
       return null;
     return {
@@ -181,7 +183,7 @@ export class MulticallUnit extends Contract {
    * @returns {T | undefined}
    */
   getSingle(tags) {
-    const data = this._getDecodableData(tags);
+    const data = this._getDecodableData(multicallNormalizeTags(tags));
     if (!data) return undefined;
     const [value] = data.call.contractInterface.decodeFunctionResult(
       data.call.method,
@@ -198,7 +200,7 @@ export class MulticallUnit extends Contract {
    * @returns {T | undefined}
    */
   getArray(tags, deep = false) {
-    const data = this._getDecodableData(tags);
+    const data = this._getDecodableData(multicallNormalizeTags(tags));
     if (!data) return undefined;
     const [array] = data.call.contractInterface
       .decodeFunctionResult(data.call.method, data.rawData)
@@ -300,7 +302,7 @@ export class MulticallUnit extends Contract {
   /**
    * @private
    * @param {import('../../types/entities').ContractCall[]} iterationCalls
-   * @returns {Promise<import('../../types/multicall').Response[]>}
+   * @returns {Promise<import('../../types/multicall').MulticallResponse[]>}
    */
   async _processStaticCalls(iterationCalls) {
     const result = await this.call(aggregate3, [iterationCalls], {
@@ -315,7 +317,7 @@ export class MulticallUnit extends Contract {
    * @private
    * @param {import('../../types/entities').ContractCall[]} iterationCalls
    * @param {import('../../types/entities').MulticallOptions} runOptions
-   * @returns {Promise<import('../../types/multicall').Response[]>}
+   * @returns {Promise<import('../../types/multicall').MulticallResponse[]>}
    */
   async _processMutableCalls(iterationCalls, runOptions) {
     let result;
@@ -342,16 +344,16 @@ export class MulticallUnit extends Contract {
 
   /**
    * @private
-   * @param {import('../../types/multicall').Response[]} iterationResponse
+   * @param {import('../../types/multicall').MulticallResponse[]} iterationResponse
    * @param {number[]} iterationIndexes
-   * @param {import('../../types/entities').MulticallTags[]} globalTags
+   * @param {import('../../types/entities').Tagable[]} globalTags // Normalized
    * @returns {void}
    */
   _saveResponse(iterationResponse, iterationIndexes, globalTags) {
     iterationResponse.forEach((el, index) => {
       const [success, data] = el;
       const globalIndex = iterationIndexes[index];
-      const tag = globalTags[globalIndex];
+      const tag = globalTags[globalIndex]; // Normalized
       if (!success) this._lastSuccess = false;
       this._rawData.set(tag, data);
       this._callsSuccess.set(tag, success);

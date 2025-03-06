@@ -1,10 +1,10 @@
-import { describe, expect, test } from 'vitest';
 import { JsonRpcProvider, Wallet } from 'ethers';
+import { describe, expect, test } from 'vitest';
 import { CONTRACTS_ERRORS } from '../../src/errors';
-import { PROVIDER, RegistryContract, WALLET } from '../stub.js';
+import { JSON_PROVIDER, JSON_WALLET, RegistryContract } from '../stub.js';
 
-const registryProvider = new RegistryContract(PROVIDER);
-const registryWallet = new RegistryContract(WALLET);
+const registryProvider = new RegistryContract(JSON_PROVIDER);
+const registryWallet = new RegistryContract(JSON_WALLET);
 
 describe('Test Contract', () => {
   test('Provider should be readonly & callable', () => {
@@ -37,5 +37,13 @@ describe('Test Contract', () => {
     const pw = registryWallet.signer;
     expect(pp).to.be.undefined;
     expect(pw).toBeInstanceOf(Wallet);
+  });
+
+  test('Should throw if listen logs without WebsocketProvider', () => {
+    registryProvider
+      .listenEvent('', () => {})
+      .catch((err) =>
+        expect(err).toEqual(CONTRACTS_ERRORS.MISSING_WEBSOCKET_PROVIDER)
+      );
   });
 });

@@ -1,8 +1,10 @@
 import { CallMutability } from './call-mutability';
 import { PriorityCallOptions } from './priority-call-options';
 
-export interface CallOptions {
+export interface ContractOptions {
   forceMutability?: CallMutability;
-  highPriorityTx?: boolean;
+  highPriorityTxs?: boolean;
   priorityOptions?: PriorityCallOptions;
+  logsBlocksStep?: number;
+  logsDelayMs?: number;
 }

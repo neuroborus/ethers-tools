@@ -30,7 +30,8 @@ const PROVIDER = new ethers.JsonRpcProvider(RPC_URL);
 
 const RegistryAbi = '<abi>';
 class RegistryContract extends Contract {
-  constructor() { // Can be passed here
+  constructor() {
+    // Can be passed here
     super(RegistryAbi, ADDRESS, PROVIDER);
   }
 
@@ -47,7 +48,7 @@ class RegistryContract extends Contract {
   }
 }
 
-// ....
+// USING MULTICALL EXAMPLE
 
 const registry = new RegistryContract();
 const unit = new MulticallUnit(PROVIDER); // Unit-of-Work - like
@@ -67,6 +68,31 @@ const directOwner = await registry.owner();
 console.log(result);
 console.log(owner === directOwner);
 console.log(JSON.stringify(list));
+
+// LISTENING EVENTS EXAMPLE
+
+const data: Set<{ address: string; id: bigint }> = new Set();
+// Start listening
+registry.listenEvent(
+  'AddressesProviderRegistered',
+  (addressesProvider: string, id: bigint) => {
+    data.add({
+      addressesProvider,
+      id,
+    });
+  }
+);
+// Find historical data for the last 30000 blocks
+for await (const log of registry.getLogsStream(-30000, [
+  'AddressesProviderRegistered',
+])) {
+  if (!log) continue;
+
+  const parsedLog = registry.contract.interface.parseLog(log);
+  if (parsedLog) {
+    data.add(parsedLog.args);
+  }
+}
 ```
 
 #### Expected output
@@ -103,24 +129,29 @@ providing an ethers `Signer` (e.g, `Wallet`) as the driver.
 ### Methods
 
 ```
-constructor(
-  abi: Interface | InterfaceAbi, // ABI of the contract
-  address?: string, // Address of the contract
-  driver?: Signer | Provider,
-  callsOptions?: CallOptions, // Default call options for each call.
-);
+  constructor(
+    abi: Interface | InterfaceAbi,
+    address?: string,
+    driver?: Signer | Provider,
+    options?: ContractOptions
+  );
 ```
 
 - `call<T = unknown>(methodName: string, args?: any[], options?: CallOptions): Promise<T>` // Performs a single on-chain call for the contract. Throws an error if unable to execute.
 - `getCall(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall` // Creates a `ContractCall` for `MulticallUnit`. Throws an error if unable to create. You can do force replacement with a `callData` parameter.
+- `listenEvent(eventName: string, listener: Listener): Promise<Contract>` // Creates event listener on the contract. WebsocketProvider is required.
+- `getLogs(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): Promise<Log[]>` // Synchronous log retrieval. 'fromBlocks' can have a minus sign, which means 'n blocks ago'.
+- `getLogsStream(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): AsyncGenerator<Log, void, unknown>` // Asynchronous way to getting logs
 
-#### CallOptions
+#### ContractOptions
 
 ```typescript
-export interface CallOptions {
+export interface ContractOptions {
   forceMutability?: CallMutability; // By default, Contract/MulticallUnit automatically detects the mutability of the method(s). You can force it.
-  highPriorityTx?: boolean; // If activated, calls as "high priority tx": multiply gasPrice and gasLimit by multiplier. It takes additional requests to get them.
-  priorityOptions?: PriorityCallOptions; // Only matters if `highPriorityTx` is activated
+  highPriorityTxs?: boolean; // If activated, calls as "high priority tx": multiply gasPrice and gasLimit by multiplier. It takes additional requests to get them.
+  priorityOptions?: PriorityCallOptions; // Only matters if `highPriorityTx` is activated.
+  logsBlocksStep?: number; // Quantity of processed blocks per iteration during log parsing.
+  logsDelayMs?: number; // Delay between log parsing iterations.
 }
 export interface PriorityCallOptions {
   asynchronous?: boolean; // Can be a little faster if provider allows (simultaneously getting gasPrice & gasLimit).
@@ -146,6 +177,15 @@ export declare enum StateMutability {
   Pure = 'pure',
   NonPayable = 'nonpayable',
   Payable = 'payable',
+}
+```
+
+#### ContractGetLogsOptions
+
+```typescript
+export interface ContractGetLogsOptions {
+  blocksStep?: number; // Quantity of processed blocks per iteration during log parsing
+  delayMs?: number; // Delay between log parsing iterations.
 }
 ```
 

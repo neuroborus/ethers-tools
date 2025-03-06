@@ -205,8 +205,8 @@ They support [single values, arrays, and records](/types/entities/multicall-tags
 This can be useful for complex calls.
 
 ```typescript
-type Keyable = string | number | symbol;
-type Tagable = Keyable | bigint;
+export type Keyable = string | number | symbol;
+export type Tagable = Keyable | bigint;
 
 export type MulticallTags = Tagable | Tagable[] | Record<Keyable, Tagable>;
 ```

@@ -83,15 +83,10 @@ registry.listenEvent(
   }
 );
 // Find historical data for the last 30000 blocks
-for await (const log of registry.getLogsStream(-30000, [
+for await (const dLog of registry.getLogsStream(-30000, [
   'AddressesProviderRegistered',
 ])) {
-  if (!log) continue;
-
-  const parsedLog = registry.contract.interface.parseLog(log);
-  if (parsedLog) {
-    data.add(parsedLog.args);
-  }
+  data.add(dLog);
 }
 ```
 

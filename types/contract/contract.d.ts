@@ -3,7 +3,7 @@ import {
   Interface,
   InterfaceAbi,
   Listener,
-  Log,
+  LogDescription,
   Provider,
   Signer,
 } from 'ethers';
@@ -47,14 +47,14 @@ export declare class Contract {
   listenEvent(eventName: string, listener: Listener): Promise<Contract>;
   getLogs(
     fromBlock: number,
-    toBlock?: number,
     eventsNames?: string[],
+    toBlock?: number,
     options?: ContractGetLogsOptions
-  ): Promise<Log[]>;
+  ): Promise<LogDescription[]>;
   getLogsStream(
     fromBlock: number,
-    toBlock?: number,
     eventsNames?: string[],
+    toBlock?: number,
     options?: ContractGetLogsOptions
-  ): AsyncGenerator<Log, void, unknown>;
+  ): AsyncGenerator<LogDescription, void, unknown>;
 }

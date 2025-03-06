@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { MulticallUnit } from '../../src';
 import { JSON_PROVIDER, RegistryContract } from '../stub.js';
 
-export const registry = new RegistryContract();
+export const registry = new RegistryContract(JSON_PROVIDER);
 
 describe('E2E Test MulticallUnit', () => {
   let prevOwner;

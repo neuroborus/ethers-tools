@@ -19,12 +19,7 @@ describe('E2E Test Contract', () => {
       ['AddressesProviderRegistered'],
       20713917
     )) {
-      if (!log) continue;
-
-      const parsedLog = registry.contract.interface.parseLog(log);
-      if (parsedLog) {
-        data.add(parsedLog.args);
-      }
+      data.add(log);
     }
     expect(data.size).toEqual(1);
   });

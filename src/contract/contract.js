@@ -163,7 +163,7 @@ export class Contract {
    * @returns {import('../../types/entities').ContractCall}
    */
   getCall(methodName, args = [], callData = {}) {
-    if (!this.address) throw CONTRACTS_ERRORS.MISSING_CONTRACT_ADDRESS;
+    if (!this.callable) throw CONTRACTS_ERRORS.NON_CALLABLE_CONTRACT_INVOCATION;
 
     const functionFragment = this.interface.getFunction(methodName);
     if (!functionFragment)
@@ -187,7 +187,7 @@ export class Contract {
    * @returns {Promise<import('ethers').Contract>}
    */
   async listenEvent(eventName, listener) {
-    if (!this.provider) throw CONTRACTS_ERRORS.MISSING_PROVIDER;
+    if (!this.callable) throw CONTRACTS_ERRORS.NON_CALLABLE_CONTRACT_INVOCATION;
     if (!(this.provider instanceof WebSocketProvider))
       throw CONTRACTS_ERRORS.MISSING_WEBSOCKET_PROVIDER;
 
@@ -200,20 +200,20 @@ export class Contract {
    * @param {number | 'latest'} [toBlock]
    * @param {string[]} [eventsNames]
    * @param {import('../../types/entities').ContractGetLogsOptions} [options]
-   * @returns {Promise<import('ethers').Log[]>}
+   * @returns {Promise<import('ethers').LogDescription[]>}
    */
   async getLogs(fromBlock, eventsNames = [], toBlock = 'latest', options = {}) {
-    const logs = [];
-    for await (const log of this.getLogsStream(
+    const descriptions = [];
+    for await (const description of this.getLogsStream(
       fromBlock,
       eventsNames,
       toBlock,
       options
     )) {
-      logs.push(log);
+      descriptions.push(description);
     }
 
-    return logs;
+    return descriptions;
   }
 
   /**
@@ -222,7 +222,7 @@ export class Contract {
    * @param {number | 'latest'} [toBlock]
    * @param {string[]} [eventsNames]
    * @param {import('../../types/entities').ContractGetLogsOptions} [options]
-   * @returns {Promise<import('ethers').Log[]>}
+   * @returns {AsyncGenerator<import('ethers').LogDescription, void>}
    */
   async *getLogsStream(
     fromBlock,
@@ -230,7 +230,7 @@ export class Contract {
     toBlock = 'latest',
     options = {}
   ) {
-    if (!this.callable) throw CONTRACTS_ERRORS.NON_CALLABLE_CONTRACT_INVOCATION;
+    if (!this.provider) throw CONTRACTS_ERRORS.MISSING_PROVIDER;
 
     const streamOptions = {
       blocksStep: this._options.logsBlocksStep || DEFAULT_LOGS_BLOCKS_STEP,
@@ -260,7 +260,9 @@ export class Contract {
       });
 
       for (const log of localLogs) {
-        yield log;
+        const description = this.interface.parseLog(log);
+        if (!description) continue;
+        yield description;
       }
 
       await new Promise((resolve) =>

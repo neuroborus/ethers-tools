@@ -26,7 +26,7 @@ import { Contract, ContractCall, MulticallUnit } from 'ethers-tools';
 
 const RPC_URL = 'https://eth.llamarpc.com';
 const ADDRESS = '0xbaA999AC55EAce41CcAE355c77809e68Bb345170';
-const PROVIDER = new ethers.JsonRpcProvider(RPC_URL);
+const PROVIDER = new ethers.WebSocketProvider(RPC_URL);
 
 const RegistryAbi = '<abi>';
 class RegistryContract extends Contract {

@@ -230,7 +230,7 @@ export class Contract {
     toBlock = 'latest',
     options = {}
   ) {
-    if (!this.provider) throw CONTRACTS_ERRORS.MISSING_PROVIDER;
+    if (!this.callable) throw CONTRACTS_ERRORS.NON_CALLABLE_CONTRACT_INVOCATION;
 
     const streamOptions = {
       blocksStep: this._options.logsBlocksStep || DEFAULT_LOGS_BLOCKS_STEP,

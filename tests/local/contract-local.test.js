@@ -1,7 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import { waitForAddressTxs } from '../../src/helpers/index.js';
 import { MulticallUnit } from '../../src/index.js';
-import { MULTICALL_ADDRESS, SimpleStorage, WALLET } from './local.stub.js';
+import {
+  AsyncAbortController,
+  MULTICALL_ADDRESS,
+  SimpleStorage,
+  WALLET,
+} from './local.stub.js';
 
 const storage = new SimpleStorage(WALLET);
 
@@ -41,5 +46,49 @@ describe('Local Test of Contract', () => {
     const logs = await storage.getLogs(-10);
 
     expect(logs.length).to.be.gt(0);
+  });
+
+  test('Test of calls abort - timeout', async () => {
+    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    let error;
+    try {
+      await storage.setFirst(90, {
+        timeoutMs: 1,
+        highPriorityTx: true,
+      });
+    } catch (err) {
+      error = err;
+    }
+    expect(error.message).to.be.match(new RegExp(/aborted/));
+  });
+  test('Test of calls abort - signals', async () => {
+    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    const controller = new AsyncAbortController();
+    let error;
+    try {
+      controller.abort();
+      await storage.setFirst(90, {
+        signals: [controller.signal],
+      });
+    } catch (err) {
+      error = err;
+    }
+    expect(error.message).to.be.match(new RegExp(/aborted/));
+  });
+  test('Test of logs abort - signals', async () => {
+    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    const controller = new AsyncAbortController();
+    let error;
+    try {
+      await Promise.all([
+        storage.getLogs(-1000, [], 0, {
+          signals: [controller.signal],
+        }),
+        controller.abortAsync(10),
+      ]);
+    } catch (err) {
+      error = err;
+    }
+    expect(error.message).to.be.match(new RegExp(/aborted/));
   });
 });

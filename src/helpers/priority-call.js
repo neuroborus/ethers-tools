@@ -1,4 +1,5 @@
 import { DEFAULT_PRIORITY_CALL_MULTIPLIER } from '../constants.js';
+import { checkSignals, createTimeoutSignal } from '../utils/index.js';
 
 /**
  * @param {import('ethers').Provider} provider
@@ -6,7 +7,7 @@ import { DEFAULT_PRIORITY_CALL_MULTIPLIER } from '../constants.js';
  * @param {import('ethers').Contract} contract
  * @param {string} method
  * @param {any[]} [args]
- * @param {import('../../types/entities').PriorityCallOptions} options
+ * @param {import('../../types/entities').PriorityCallOptions} [options={}]
  * @returns {Promise<import('ethers').TransactionResponse>}
  */
 export async function priorityCall(
@@ -15,22 +16,35 @@ export async function priorityCall(
   contract,
   method,
   args = [],
-  options = {
-    multiplier: DEFAULT_PRIORITY_CALL_MULTIPLIER,
-  }
+  options = {}
 ) {
+  const localOptions = {
+    multiplier: DEFAULT_PRIORITY_CALL_MULTIPLIER,
+    ...options,
+  };
+
+  const localSignals = [];
+  if (localOptions.signals) localSignals.push(...localOptions.signals);
+  if (localOptions.timeoutMs)
+    localSignals.push(createTimeoutSignal(localOptions.timeoutMs));
+
+  checkSignals(localSignals);
   const [originalFeeData, originalGasLimit] = await gatherOriginalData(
     provider,
     contract,
     method,
     args,
-    options.asynchronous
+    localOptions.asynchronous,
+    localSignals
   );
 
   const gasPrice = Math.ceil(
-    options.multiplier * Number(originalFeeData.gasPrice)
+    localOptions.multiplier * Number(originalFeeData.gasPrice)
   );
-  const gasLimit = Math.ceil(options.multiplier * Number(originalGasLimit));
+  const gasLimit = Math.ceil(
+    localOptions.multiplier * Number(originalGasLimit)
+  );
+  checkSignals(localSignals);
   const txn = await contract.getFunction(method).populateTransaction(...args, {
     gasLimit,
     gasPrice,
@@ -39,13 +53,15 @@ export async function priorityCall(
   // Avoids potential issues if from is incorrectly set or differs from the signer's address.
   delete txn.from;
 
-  if (options.provideChainId) {
+  if (localOptions.provideChainId) {
+    checkSignals(localSignals);
     const network = await provider.getNetwork();
     txn.chainId = network.chainId;
   } else {
-    if (options.chainId) txn.chainId = options.chainId;
+    if (localOptions.chainId) txn.chainId = localOptions.chainId;
   }
 
+  checkSignals(localSignals);
   return signer.sendTransaction(txn);
 }
 
@@ -55,6 +71,7 @@ export async function priorityCall(
  * @param {string} method
  * @param {any[]} [args]
  * @param {boolean} asynchronous
+ * @param {AbortSignal[]} signals
  * @returns {Promise<[import('ethers').FeeData, bigint]>}
  */
 async function gatherOriginalData(
@@ -62,9 +79,11 @@ async function gatherOriginalData(
   contract,
   method,
   args,
-  asynchronous
+  asynchronous,
+  signals
 ) {
   let originalFeeData, originalGasLimit;
+  checkSignals(signals);
   if (asynchronous) {
     [originalFeeData, originalGasLimit] = await Promise.all([
       provider.getFeeData(),
@@ -73,6 +92,7 @@ async function gatherOriginalData(
     return [originalFeeData, originalGasLimit];
   }
   originalFeeData = await provider.getFeeData();
+  checkSignals(signals);
   originalGasLimit = await contract.getFunction(method).estimateGas(...args);
 
   return [originalFeeData, originalGasLimit];

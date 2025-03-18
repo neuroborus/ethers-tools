@@ -15,13 +15,13 @@ import { MulticallDecodableData } from './multicall-decodable-data';
 import { MulticallResponse } from './multicall-response';
 
 export declare class MulticallUnit extends Contract {
-  protected readonly _options: MulticallOptions;
   protected readonly _units: Map<MulticallTags, ContractCall>;
   protected readonly _rawData: Map<MulticallTags, string>;
   protected readonly _callsSuccess: Map<MulticallTags, boolean>;
   protected _response: MulticallResponse[];
   protected _lastSuccess?: boolean;
   protected _isExecuting: boolean;
+  protected readonly _multicallOptions: MulticallOptions;
 
   constructor(
     driver: Signer | Provider,
@@ -51,7 +51,8 @@ export declare class MulticallUnit extends Contract {
 
   public run(options?: MulticallOptions): Promise<boolean>;
   private _processStaticCalls(
-    iterationCalls: ContractCall[]
+    iterationCalls: ContractCall[],
+    runOptions: MulticallOptions
   ): Promise<MulticallResponse[]>;
   private _processMutableCalls(
     iterationCalls: ContractCall[],

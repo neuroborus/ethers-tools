@@ -5,4 +5,6 @@ export interface ContractCallOptions {
   forceMutability?: CallMutability;
   highPriorityTx?: boolean;
   priorityOptions?: PriorityCallOptions;
+  signals?: AbortSignal[];
+  timeoutMs?: number;
 }

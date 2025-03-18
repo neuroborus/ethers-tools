@@ -17,12 +17,14 @@ describe('Test Contract', () => {
     expect(registryWallet.callable).to.be.true;
   });
 
-  test('Provider should throw error if write', () => {
-    registryProvider
-      .renounceOwnership()
-      .catch((err) =>
-        expect(err).toEqual(CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION)
-      );
+  test('Provider should throw error if write', async () => {
+    let error;
+    try {
+      await registryProvider.renounceOwnership();
+    } catch (err) {
+      error = err;
+    }
+    expect(error).toEqual(CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION);
   });
 
   test('Should provide provider', () => {
@@ -39,11 +41,13 @@ describe('Test Contract', () => {
     expect(pw).toBeInstanceOf(Wallet);
   });
 
-  test('Should throw if listen logs without WebsocketProvider', () => {
-    registryProvider
-      .listenEvent('', () => {})
-      .catch((err) =>
-        expect(err).toEqual(CONTRACTS_ERRORS.MISSING_WEBSOCKET_PROVIDER)
-      );
+  test('Should throw if listen logs without WebsocketProvider', async () => {
+    let error;
+    try {
+      await registryProvider.listenEvent('', () => {});
+    } catch (err) {
+      error = err;
+    }
+    expect(error).toEqual(CONTRACTS_ERRORS.MISSING_WEBSOCKET_PROVIDER);
   });
 });

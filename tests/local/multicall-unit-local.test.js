@@ -2,13 +2,18 @@ import { TransactionReceipt, TransactionResponse } from 'ethers';
 import { describe, expect, test } from 'vitest';
 import { waitForAddressTxs } from '../../src/helpers/index.js';
 import { MulticallUnit } from '../../src/index.js';
-import { MULTICALL_ADDRESS, SimpleStorage, WALLET } from './local.stub.js';
+import {
+  AsyncAbortController,
+  MULTICALL_ADDRESS,
+  SimpleStorage,
+  WALLET,
+} from './local.stub.js';
 
 const storage = new SimpleStorage(WALLET);
 
 // noinspection t
 describe('Local Test of MulticallUnit - Testnet', () => {
-  test('Test of write calls - do not wait', async () => {
+  test('Test of write calls - do not waitWithSignals', async () => {
     await waitForAddressTxs(WALLET.address, WALLET.provider);
     const unit = new MulticallUnit(
       WALLET,
@@ -20,7 +25,7 @@ describe('Local Test of MulticallUnit - Testnet', () => {
     );
 
     for (let i = 0; i < 1; i++) {
-      // 1 because of non-wait test - it will require replacement fee
+      // 1 because of non-waitWithSignals test - it will require replacement fee
       unit.add([i], storage.setFirstCall(i));
       unit.add([i, i], storage.setSecondCall(i));
     }
@@ -35,11 +40,11 @@ describe('Local Test of MulticallUnit - Testnet', () => {
     }
     for (let i = 0; i < 1; i++) {
       const tx = unit.getRaw([i]); // Same for whole stack
-      await tx.wait(); // wait for healthy ending before next steps
+      await tx.wait(); // waitWithSignals for healthy ending before next steps
     }
   });
 
-  test('Test of write calls - wait', async () => {
+  test('Test of write calls - waitWithSignals', async () => {
     await waitForAddressTxs(WALLET.address, WALLET.provider);
     const unit = new MulticallUnit(
       WALLET,
@@ -149,5 +154,61 @@ describe('Local Test of MulticallUnit - Testnet', () => {
       expect(first).to.be.eq(9n);
       expect(second).to.be.eq(9n);
     }
+  });
+
+  // Sync operations are too fast
+  test('Read data - timeout', async () => {
+    const unit = new MulticallUnit(
+      WALLET,
+      {
+        staticCallsTimeoutMs: 1,
+        maxStaticCallsStack: 1,
+      },
+      MULTICALL_ADDRESS
+    );
+
+    for (let i = 0; i < 1; i++) {
+      unit.add([i], storage.getFirstCall());
+      unit.add([i, i], storage.getSecondCall());
+    }
+    let error;
+
+    try {
+      await unit.run();
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).to.be.match(new RegExp(/aborted/));
+    expect(unit.success).to.be.false;
+  });
+
+  test('Read data - signal', async () => {
+    const controller = new AsyncAbortController();
+
+    const unit = new MulticallUnit(
+      WALLET,
+      {
+        highPriorityTxs: true,
+        signals: [controller.signal],
+        maxStaticCallsStack: 2,
+      },
+      MULTICALL_ADDRESS
+    );
+
+    for (let i = 0; i < 1; i++) {
+      unit.add([i], storage.getFirstCall());
+      unit.add([i, i], storage.getSecondCall());
+    }
+
+    let error;
+    try {
+      controller.abort();
+      await unit.run();
+    } catch (err) {
+      error = err;
+    }
+    expect(error).to.be.match(new RegExp(/aborted/));
+    expect(unit.success).to.be.false;
   });
 });

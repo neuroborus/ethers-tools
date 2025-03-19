@@ -1,25 +1,22 @@
+import { TransactionReceipt } from 'ethers';
 import { Multicall3Abi } from '../abis/index.js';
 import { CallMutability } from '../entities/index.js';
 import {
   DEFAULT_MULTICALL_MUTABLE_CALLS_STACK_LIMIT,
   DEFAULT_MULTICALL_STATIC_CALLS_STACK_LIMIT,
+  DEFAULT_WAIT_CALLS_TIMEOUT_MS,
   MULTICALL_ADDRESS,
 } from '../constants.js';
 import { isStaticArray } from '../helpers/index.js';
 import { MULTICALL_ERRORS } from '../errors/index.js';
 import { Contract } from '../contract/index.js';
+import { checkSignals, raceWithSignals } from '../utils/index.js';
 import { multicallNormalizeTags } from './multicall-normalize-tags.js';
 import { multicallSplitCalls } from './multicall-split-calls.js';
 
 const aggregate3 = 'aggregate3';
 
 export class MulticallUnit extends Contract {
-  /**
-   * @protected
-   * @readonly
-   * @type {import('../../types/entities').MulticallOptions}
-   */
-  _options = {};
   /**
    * @protected
    * @readonly
@@ -54,6 +51,12 @@ export class MulticallUnit extends Contract {
    * @type {boolean}
    */
   _isExecuting = false;
+  /**
+   * @protected
+   * @readonly
+   * @type {import('../../types/entities').MulticallOptions}
+   */
+  _multicallOptions = {};
 
   /**
    * @param {import('ethers').Provider | import('ethers').Signer | undefined} driver
@@ -61,11 +64,20 @@ export class MulticallUnit extends Contract {
    * @param {string} [multicallAddress]
    */
   constructor(driver, options = {}, multicallAddress = MULTICALL_ADDRESS) {
-    super(Multicall3Abi, multicallAddress, driver);
-    this._options = {
+    const contractOptions = {
+      forceMutability: options.forceMutability,
+      highPriorityTxs: options.highPriorityTxs,
+      priorityOptions: options.priorityOptions,
+      signals: options.signals,
+      staticCallsTimeoutMs: options.staticCallsTimeoutMs,
+      mutableCallsTimeoutMs: options.mutableCallsTimeoutMs,
+    };
+    super(Multicall3Abi, multicallAddress, driver, contractOptions);
+    this._multicallOptions = {
       maxStaticCallsStack: DEFAULT_MULTICALL_STATIC_CALLS_STACK_LIMIT,
       maxMutableCallsStack: DEFAULT_MULTICALL_MUTABLE_CALLS_STACK_LIMIT,
       waitForTxs: true, // The safest way to handle nonce in transactions
+      waitCallsTimeoutMs: DEFAULT_WAIT_CALLS_TIMEOUT_MS,
       ...options,
     };
   }
@@ -215,7 +227,7 @@ export class MulticallUnit extends Contract {
    */
   async run(options = {}) {
     const runOptions = {
-      ...this._options,
+      ...this._multicallOptions,
       ...options,
     };
 
@@ -226,6 +238,8 @@ export class MulticallUnit extends Contract {
       const tags = this.tags;
       const calls = this.calls;
       this._response = Array(tags.length).fill([undefined, null]);
+
+      checkSignals(runOptions.signals);
 
       let staticCalls;
       let staticIndexes;
@@ -258,6 +272,8 @@ export class MulticallUnit extends Contract {
         i < mutableCalls.length;
         i += runOptions.maxMutableCallsStack
       ) {
+        checkSignals(runOptions.signals);
+
         const border = Math.min(
           i + runOptions.maxMutableCallsStack,
           mutableCalls.length
@@ -279,6 +295,8 @@ export class MulticallUnit extends Contract {
         i < staticCalls.length;
         i += runOptions.maxStaticCallsStack
       ) {
+        checkSignals(runOptions.signals);
+
         const border = Math.min(
           i + runOptions.maxStaticCallsStack,
           staticCalls.length
@@ -286,12 +304,15 @@ export class MulticallUnit extends Contract {
         const iterationCalls = staticCalls.slice(i, border); // half-opened interval
         const iterationIndexes = staticIndexes.slice(i, border); // half-opened interval
 
-        const iterationResponse =
-          await this._processStaticCalls(iterationCalls);
+        const iterationResponse = await this._processStaticCalls(
+          iterationCalls,
+          runOptions
+        );
 
         this._saveResponse(iterationResponse, iterationIndexes, tags);
       }
     } catch (error) {
+      this._lastSuccess = false;
       throw error;
     } finally {
       this._isExecuting = false;
@@ -302,11 +323,14 @@ export class MulticallUnit extends Contract {
   /**
    * @private
    * @param {import('../../types/entities').ContractCall[]} iterationCalls
+   * @param {import('../../types/entities').MulticallOptions} runOptions
    * @returns {Promise<import('../../types/multicall').MulticallResponse[]>}
    */
-  async _processStaticCalls(iterationCalls) {
+  async _processStaticCalls(iterationCalls, runOptions) {
     const result = await this.call(aggregate3, [iterationCalls], {
       forceMutability: CallMutability.Static,
+      signals: runOptions.signals,
+      timeoutMs: runOptions.staticCallsTimeoutMs,
     });
     this._lastSuccess = !(this._lastSuccess === false);
 
@@ -325,9 +349,14 @@ export class MulticallUnit extends Contract {
       forceMutability: CallMutability.Mutable,
       highPriorityTx: runOptions.highPriorityTxs,
       priorityOptions: runOptions.priorityOptions,
+      signals: runOptions.signals,
+      timeoutMs: runOptions.mutableCallsTimeoutMs,
     });
     if (runOptions.waitForTxs) {
-      const receipt = await tx.wait();
+      const receipt = await raceWithSignals(
+        () => tx.wait(),
+        runOptions.signals
+      );
       if (!receipt) {
         result = Array(iterationCalls.length).fill([false, null]);
         this._lastSuccess = false;

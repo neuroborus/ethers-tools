@@ -15,12 +15,16 @@ describe('Test Multicall Unit', () => {
     expect(multicallProvider.static).to.be.false;
   });
 
-  test('Provider should not process write call', () => {
-    multicallProvider
-      .run()
-      .catch((err) =>
-        expect(err).toEqual(CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION)
-      );
+  test('Provider should not process write call', async () => {
+    let error;
+    try {
+      multicallProvider.add(1, registryProvider.getRenounceOwnershipCall());
+      await multicallProvider.run().catch((err) => (error = err));
+    } catch (err) {
+      error = err;
+    }
+    expect(error).toEqual(CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION);
+    expect(multicallProvider.static).to.be.false;
   });
 
   test('Should be cleared completely', () => {
@@ -30,9 +34,14 @@ describe('Test Multicall Unit', () => {
     expect(multicallProvider.success).to.be.undefined;
   });
 
-  test('Should not allow simultaneous run', () => {
-    Promise.all([multicallProvider.run(), multicallProvider.run()]).catch(
-      (err) => expect(err).toEqual(MULTICALL_ERRORS.SIMULTANEOUS_INVOCATIONS)
-    );
+  test('Should not allow simultaneous run', async () => {
+    let error;
+    try {
+      multicallProvider.add(1, registryProvider.getOwnerCall());
+      await Promise.all([multicallProvider.run(), multicallProvider.run()]);
+    } catch (err) {
+      error = err;
+    }
+    expect(error).toEqual(MULTICALL_ERRORS.SIMULTANEOUS_INVOCATIONS);
   });
 });

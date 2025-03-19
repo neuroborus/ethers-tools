@@ -7,4 +7,7 @@ export interface ContractOptions {
   priorityOptions?: PriorityCallOptions;
   logsBlocksStep?: number;
   logsDelayMs?: number;
+  signals?: AbortSignal[];
+  staticCallsTimeoutMs?: number;
+  mutableCallsTimeoutMs?: number;
 }

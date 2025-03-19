@@ -20,7 +20,7 @@ export declare class Contract {
   public readonly readonly: boolean;
   public readonly address: string;
   protected readonly _driver?: Provider | Signer;
-  protected readonly _options: ContractOptions;
+  protected readonly _contractOptions: ContractOptions;
 
   constructor(
     abi: Interface | InterfaceAbi,
@@ -57,4 +57,9 @@ export declare class Contract {
     toBlock?: number,
     options?: ContractGetLogsOptions
   ): AsyncGenerator<LogDescription, void, unknown>;
+
+  _getTimeoutSignal(
+    isStatic: boolean,
+    timeoutMs?: number
+  ): Promise<AbortSignal>;
 }

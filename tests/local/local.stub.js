@@ -18,8 +18,8 @@ export class SimpleStorage extends Contract {
     super(StorageAbi, SIMPLE_STORAGE_ADDRESS, driver);
   }
 
-  setFirst(newValue) {
-    return this.call('setFirst', [newValue]);
+  setFirst(newValue, options) {
+    return this.call('setFirst', [newValue], options);
   }
   setFirstCall(newValue) {
     return this.getCall('setFirst', [newValue]);
@@ -51,5 +51,12 @@ export class SimpleStorage extends Contract {
   }
   getWriteCountCall() {
     return this.getCall('getWriteCount');
+  }
+}
+
+export class AsyncAbortController extends AbortController {
+  async abortAsync(delay = 0) {
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    this.abort();
   }
 }

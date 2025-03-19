@@ -53,11 +53,8 @@ class RegistryContract extends Contract {
 const registry = new RegistryContract();
 const unit = new MulticallUnit(PROVIDER); // Unit-of-Work - like
 
-const listCallTag = 'listCall';
-unit.add(listCallTag, registry.getAddressesProvidersListCall());
-
-const ownerCallTag = 'ownerCall';
-unit.add(ownerCallTag, registry.getOwnerCall());
+const listCallTag = unit.add('listCall', registry.getAddressesProvidersListCall()); // 'listCall'
+const ownerCallTag = unit.add('ownerCall', registry.getOwnerCall()); // 'ownerCall'
 
 const result: boolean = await unit.run();
 
@@ -147,12 +144,17 @@ export interface ContractOptions {
   priorityOptions?: PriorityCallOptions; // Only matters if `highPriorityTx` is activated.
   logsBlocksStep?: number; // Quantity of processed blocks per iteration during log parsing.
   logsDelayMs?: number; // Delay between log parsing iterations.
+  signals?: AbortSignal[]; // Can be passed for abort signal control
+  staticCallsTimeoutMs?: number; // Timeout for static calls in ms. DEFAULT: 10000
+  mutableCallsTimeoutMs?: number; // Timeout for mutable calls in ms. DEFAULT: 20000
 }
 export interface PriorityCallOptions {
   asynchronous?: boolean; // Can be a little faster if provider allows (simultaneously getting gasPrice & gasLimit).
   chainId?: bigint; // Manually set. (Prevents replay attacks by ensuring the transaction is valid only for the intended blockchain network)
   provideChainId?: boolean; // Automatic - additional async request. (Prevents replay attacks by ensuring the transaction is valid only for the intended blockchain network)
   multiplier?: number; // Multiplier for gasPrise and gasLimit values.
+  signals?: AbortSignal[]; // Can be passed for abort signal control
+  timeoutMs?: number; // Timeout in milliseconds. If not provided, there is no default option.
 }
 ```
 
@@ -227,7 +229,7 @@ constructor(
 
 - `clear(): void` // Completely clears the Unit for reuse.
 - `add(tags: MulticallTags, contractCall: ContractCall): MulticallTags` // Add new call.
-- `run(): Promise<boolean>` // Executes the multicall operation.
+- `run(options?: MulticallOptions): Promise<boolean>` // Executes the multicall operation.
 - `getSingle<T>(tags: MulticallTags): T | undefined` // Get single primitive value as result.
 - `getArray<T>(tags: MulticallTags, deep?: boolean): T | undefined` // Get array as result.
 - `getRaw(tags: MulticallTags): string | TransactionResponse | TransactionReceipt | undefined;` // Get the raw multicall result. Returns TransactionResponse if a mutable call has been processed. Returns TransactionReceipt if the `waitForTxs` flag was turned on.
@@ -237,12 +239,16 @@ constructor(
 
 ```typescript
 export interface MulticallOptions {
-  maxStaticCallsStack?: number; // The maximum size of one static execution. If it overfills, the multicall performs additional executions. DEFAULT: 50
-  maxMutableCallsStack?: number; // The maximum size of one mutable execution. If it overfills, the multicall performs additional executions. DEFAULT: 10
   forceMutability?: CallMutability; // Allows to force mutability. It will try to call as static or mutable if you want to.
   waitForTxs?: boolean; // Wait for every transaction. Turned on by default for nonce safety. DEFAULT: true
   highPriorityTxs?: boolean; // You can make priority transaction when it is necessary. Requires more calls, but will be processed more quickly.
   priorityOptions?: PriorityCallOptions; // Only matters if `highPriorityTxs` is turned on.
+  maxStaticCallsStack?: number; // The maximum size of one static execution. If it overfills, the multicall performs additional executions. DEFAULT: 50
+  maxMutableCallsStack?: number; // The maximum size of one mutable execution. If it overfills, the multicall performs additional executions. DEFAULT: 10
+  signals?: AbortSignal[]; // Can be passed for abort signal control
+  staticCallsTimeoutMs?: number; // Timeout for static calls in ms. DEFAULT: 10000
+  mutableCallsTimeoutMs?: number; // Timeout for mutable calls in ms. DEFAULT: 20000
+  waitCallsTimeoutMs?: number; // Timeout for waiting in ms. DEFAULT: 30000
 }
 export enum CallMutability {
   Static = 'STATIC',
@@ -302,4 +308,35 @@ export enum Chain { // Contains more than 250 different chains. Supports JS as s
   Rinkeby = 4,
   // And other 250+ chains...
 }
+```
+
+#### Utilities
+
+```typescript
+// Check AbortSignal[] and throw if any signal is aborted.
+export declare const checkSignals: (signals: AbortSignal[]) => void;
+```
+```typescript
+// Create a promise for signals to use in race conditions
+export declare const createSignalsPromise: (
+  signals: AbortSignal[]
+) => Promise<never>;
+```
+```typescript
+// Create a signal from a timeout in milliseconds.
+export declare const createTimeoutSignal: (ms: number) => AbortSignal;
+```
+```typescript
+// Race the provided function (racer) with the given signals.
+export declare const raceWithSignals: <T>(
+  racer: () => Promise<T>,
+  signals?: AbortSignal[]
+) => Promise<T>;
+```
+```typescript
+// Wait while listening to signals
+export declare const waitWithSignals: (
+  ms: number,
+  signals?: AbortSignal[]
+) => Promise<void>;
 ```

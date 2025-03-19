@@ -9,9 +9,17 @@ import {
   DEFAULT_LOGS_BLOCKS_STEP,
   DEFAULT_LOGS_DELAY_MS,
   DEFAULT_MULTICALL_ALLOW_FAILURE,
+  DEFAULT_MUTABLE_CALLS_TIMEOUT_MS,
+  DEFAULT_STATIC_CALLS_TIMEOUT_MS,
 } from '../constants.js';
-import { isStaticMethod, priorityCall } from '../helpers/index.js';
+import { isSigner, isStaticMethod, priorityCall } from '../helpers/index.js';
 import { CONTRACTS_ERRORS } from '../errors/index.js';
+import {
+  checkSignals,
+  createTimeoutSignal,
+  raceWithSignals,
+  waitWithSignals,
+} from '../utils/index.js';
 
 /**
  * Base contract.
@@ -52,7 +60,7 @@ export class Contract {
    * @protected
    * @type {import('../../types/entities').ContractOptions}
    */
-  _options;
+  _contractOptions;
 
   /**
    * @param {import('ethers').Interface | import('ethers').InterfaceAbi} abi
@@ -69,10 +77,13 @@ export class Contract {
     this.address = address;
     this._driver = driver;
     this.callable = !!address && !!driver;
-    this.readonly =
-      !this.callable || !(driver && typeof driver.getAddress === 'function'); // if Signer
+    this.readonly = !this.callable || !(driver && isSigner(driver)); // if Signer
     this.contract = new EthersContract(address, abi, driver);
-    this._options = options;
+    this._contractOptions = {
+      staticCallsTimeoutMs: DEFAULT_STATIC_CALLS_TIMEOUT_MS,
+      mutableCallsTimeoutMs: DEFAULT_MUTABLE_CALLS_TIMEOUT_MS,
+      ...options,
+    };
   }
 
   /**
@@ -81,8 +92,7 @@ export class Contract {
    */
   get provider() {
     if (!this._driver) return undefined;
-    if (typeof this._driver.getAddress === 'function')
-      return this._driver.provider;
+    if (isSigner(this._driver)) return this._driver.provider;
     return this._driver;
   }
 
@@ -123,9 +133,9 @@ export class Contract {
       throw CONTRACTS_ERRORS.FRAGMENT_NOT_DEFINED(methodName);
 
     const callOptions = {
-      forceMutability: this._options.forceMutability,
-      highPriorityTx: this._options.highPriorityTxs,
-      priorityOptions: this._options.priorityOptions,
+      forceMutability: this._contractOptions.forceMutability,
+      highPriorityTx: this._contractOptions.highPriorityTxs,
+      priorityOptions: this._contractOptions.priorityOptions,
       ...options,
     };
 
@@ -133,23 +143,37 @@ export class Contract {
       ? callOptions.forceMutability === CallMutability.Static
       : isStaticMethod(functionFragment.stateMutability);
 
+    const localSignals = [];
+    if (callOptions.signals) localSignals.push(...callOptions.signals);
+    if (callOptions.timeoutMs)
+      localSignals.push(
+        this._getTimeoutSignal(isStatic, callOptions.timeoutMs)
+      );
+
     if (isStatic) {
-      return method.staticCall(...args);
+      return raceWithSignals(() => method.staticCall(...args), localSignals);
     } else {
       if (this.readonly) throw CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION;
       let tx;
       if (callOptions.highPriorityTx) {
         const provider = this._driver.provider;
-        tx = await priorityCall(
-          provider,
-          this._driver,
-          this.contract,
-          methodName,
-          args,
-          options.priorityOptions
+        tx = await raceWithSignals(
+          () =>
+            priorityCall(
+              provider,
+              this._driver,
+              this.contract,
+              methodName,
+              args,
+              {
+                signals: localSignals,
+                ...options.priorityOptions,
+              }
+            ),
+          localSignals
         );
       } else {
-        tx = await method(...args);
+        tx = await raceWithSignals(() => method(...args), localSignals);
       }
       return tx;
     }
@@ -197,12 +221,12 @@ export class Contract {
   /**
    * @public
    * @param {number} fromBlock
-   * @param {number | 'latest'} [toBlock]
+   * @param {number} [toBlock]
    * @param {string[]} [eventsNames]
    * @param {import('../../types/entities').ContractGetLogsOptions} [options]
    * @returns {Promise<import('ethers').LogDescription[]>}
    */
-  async getLogs(fromBlock, eventsNames = [], toBlock = 'latest', options = {}) {
+  async getLogs(fromBlock, eventsNames = [], toBlock = 0, options = {}) {
     const descriptions = [];
     for await (const description of this.getLogsStream(
       fromBlock,
@@ -219,7 +243,7 @@ export class Contract {
   /**
    * @public
    * @param {number} fromBlock
-   * @param {number | 'latest'} [toBlock]
+   * @param {number} [toBlock]
    * @param {string[]} [eventsNames]
    * @param {import('../../types/entities').ContractGetLogsOptions} [options]
    * @returns {AsyncGenerator<import('ethers').LogDescription, void>}
@@ -227,14 +251,15 @@ export class Contract {
   async *getLogsStream(
     fromBlock,
     eventsNames = [],
-    toBlock = 'latest',
+    toBlock = 0, // Latest by default
     options = {}
   ) {
     if (!this.callable) throw CONTRACTS_ERRORS.NON_CALLABLE_CONTRACT_INVOCATION;
 
     const streamOptions = {
-      blocksStep: this._options.logsBlocksStep || DEFAULT_LOGS_BLOCKS_STEP,
-      delayMs: this._options.logsDelayMs || DEFAULT_LOGS_DELAY_MS,
+      blocksStep:
+        this._contractOptions.logsBlocksStep || DEFAULT_LOGS_BLOCKS_STEP,
+      delayMs: this._contractOptions.logsDelayMs || DEFAULT_LOGS_DELAY_MS,
       ...options,
     };
 
@@ -242,8 +267,8 @@ export class Contract {
       (event) => this.contract.getEvent(event).fragment.topicHash
     );
 
-    const finToBlock =
-      toBlock === 'latest' ? await this.provider.getBlockNumber() : toBlock;
+    checkSignals(options.signals);
+    const finToBlock = toBlock ? toBlock : await this.provider.getBlockNumber();
     const finFromBlock = fromBlock < 0 ? finToBlock + fromBlock : fromBlock;
 
     for (
@@ -251,6 +276,8 @@ export class Contract {
       from < finToBlock;
       from += streamOptions.blocksStep
     ) {
+      checkSignals(options.signals);
+
       const to = Math.min(from + streamOptions.blocksStep, finToBlock);
       const localLogs = await this.provider.getLogs({
         fromBlock: from,
@@ -260,14 +287,33 @@ export class Contract {
       });
 
       for (const log of localLogs) {
+        checkSignals(options.signals);
         const description = this.interface.parseLog(log);
         if (!description) continue;
         yield description;
       }
 
-      await new Promise((resolve) =>
-        setTimeout(resolve, streamOptions.delayMs)
-      );
+      await waitWithSignals(streamOptions.delayMs, options.signals);
     }
+  }
+
+  /**
+   * @private
+   * @param {boolean} isStatic
+   * @param {number} [timeoutMs]
+   * @returns {AbortSignal}
+   */
+  _getTimeoutSignal(isStatic, timeoutMs) {
+    let timeout;
+    if (timeoutMs) {
+      timeout = timeoutMs;
+    } else {
+      if (isStatic) {
+        timeout = this._contractOptions.staticCallsTimeoutMs;
+      } else {
+        timeout = this._contractOptions.mutableCallsTimeoutMs;
+      }
+    }
+    return createTimeoutSignal(timeout);
   }
 }

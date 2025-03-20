@@ -38,16 +38,21 @@ export async function priorityCall(
     localSignals
   );
 
-  const gasPrice = Math.ceil(
-    localOptions.multiplier * Number(originalFeeData.gasPrice)
+  const maxFeePerGas = Math.ceil(
+    localOptions.multiplier * Number(originalFeeData.maxFeePerGas)
   );
+  const maxPriorityFeePerGas = Math.ceil(
+    localOptions.multiplier * Number(originalFeeData.maxPriorityFeePerGas)
+  );
+
   const gasLimit = Math.ceil(
     localOptions.multiplier * Number(originalGasLimit)
   );
   checkSignals(localSignals);
   const txn = await contract.getFunction(method).populateTransaction(...args, {
     gasLimit,
-    gasPrice,
+    maxFeePerGas,
+    maxPriorityFeePerGas,
   });
   // Prevents conflicts when using signer.sendTransaction(txn), as the signer should determine the from address.
   // Avoids potential issues if from is incorrectly set or differs from the signer's address.

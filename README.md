@@ -53,7 +53,10 @@ class RegistryContract extends Contract {
 const registry = new RegistryContract();
 const unit = new MulticallUnit(PROVIDER); // Unit-of-Work - like
 
-const listCallTag = unit.add('listCall', registry.getAddressesProvidersListCall()); // 'listCall'
+const listCallTag = unit.add(
+  'listCall',
+  registry.getAddressesProvidersListCall()
+); // 'listCall'
 const ownerCallTag = unit.add('ownerCall', registry.getOwnerCall()); // 'ownerCall'
 
 const result: boolean = await unit.run();
@@ -316,16 +319,19 @@ export enum Chain { // Contains more than 250 different chains. Supports JS as s
 // Check AbortSignal[] and throw if any signal is aborted.
 export declare const checkSignals: (signals: AbortSignal[]) => void;
 ```
+
 ```typescript
 // Create a promise for signals to use in race conditions
 export declare const createSignalsPromise: (
   signals: AbortSignal[]
 ) => Promise<never>;
 ```
+
 ```typescript
 // Create a signal from a timeout in milliseconds.
 export declare const createTimeoutSignal: (ms: number) => AbortSignal;
 ```
+
 ```typescript
 // Race the provided function (racer) with the given signals.
 export declare const raceWithSignals: <T>(
@@ -333,6 +339,7 @@ export declare const raceWithSignals: <T>(
   signals?: AbortSignal[]
 ) => Promise<T>;
 ```
+
 ```typescript
 // Wait while listening to signals
 export declare const waitWithSignals: (

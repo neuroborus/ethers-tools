@@ -60,8 +60,8 @@ export class MulticallUnit extends Contract {
 
   /**
    * @param {import('ethers').Provider | import('ethers').Signer | undefined} driver
-   * @param {import('../../types/entities').MulticallOptions} [options]
-   * @param {string} [multicallAddress]
+   * @param {import('../../types/entities').MulticallOptions} [options={}]
+   * @param {string} [multicallAddress=MULTICALL_ADDRESS]
    */
   constructor(driver, options = {}, multicallAddress = MULTICALL_ADDRESS) {
     const contractOptions = {
@@ -208,7 +208,7 @@ export class MulticallUnit extends Contract {
    * @template T
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
-   * @param {boolean} [deep]
+   * @param {boolean} [deep=false]
    * @returns {T | undefined}
    */
   getArray(tags, deep = false) {
@@ -222,7 +222,7 @@ export class MulticallUnit extends Contract {
 
   /**
    * @public
-   * @param {import('../../types/entities').MulticallOptions} [options]
+   * @param {import('../../types/entities').MulticallOptions} [options={}]
    * @returns {Promise<boolean>}
    */
   async run(options = {}) {

@@ -1,7 +1,7 @@
 /**
  * @param {string} address
  * @param {import('ethers').Provider} provider
- * @param {number} [delayMs]
+ * @param {number} [delayMs=1000]
  * @returns {Promise<void>}
  */
 export const waitForAddressTxs = async (address, provider, delayMs = 1000) => {

@@ -6,7 +6,7 @@ import { checkSignals, createTimeoutSignal } from '../utils/index.js';
  * @param {import('ethers').Signer} signer
  * @param {import('ethers').Contract} contract
  * @param {string} method
- * @param {any[]} [args]
+ * @param {any[]} [args=[]]
  * @param {import('../../types/entities').PriorityCallOptions} [options={}]
  * @returns {Promise<import('ethers').TransactionResponse>}
  */

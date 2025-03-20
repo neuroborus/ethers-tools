@@ -64,9 +64,9 @@ export class Contract {
 
   /**
    * @param {import('ethers').Interface | import('ethers').InterfaceAbi} abi
-   * @param {string} [address]
+   * @param {string} [address='0x0000000000000000000000000000000000000000']
    * @param {import('ethers').Provider | import('ethers').Signer | undefined} [driver]
-   * @param {import('../../types/entities').ContractOptions} [options]
+   * @param {import('../../types/entities').ContractOptions} [options={}]
    */
   constructor(
     abi,
@@ -118,8 +118,8 @@ export class Contract {
    * @template T
    * @public
    * @param {string} methodName
-   * @param {any[]} [args]
-   * @param {import('../../types/entities').ContractCallOptions} [options]
+   * @param {any[]} [args=[]]
+   * @param {import('../../types/entities').ContractCallOptions} [options={}]
    * @returns {T}
    */
   async call(methodName, args = [], options = {}) {
@@ -182,8 +182,8 @@ export class Contract {
   /**
    * @public
    * @param {string} methodName
-   * @param {any[]} [args]
-   * @param {Partial<import('../../types/entities').ContractCall>} [callData]
+   * @param {any[]} [args=[]]
+   * @param {Partial<import('../../types/entities').ContractCall>} [callData={}]
    * @returns {import('../../types/entities').ContractCall}
    */
   getCall(methodName, args = [], callData = {}) {
@@ -221,9 +221,9 @@ export class Contract {
   /**
    * @public
    * @param {number} fromBlock
-   * @param {number} [toBlock]
-   * @param {string[]} [eventsNames]
-   * @param {import('../../types/entities').ContractGetLogsOptions} [options]
+   * @param {string[]} [eventsNames=[]]
+   * @param {number} [toBlock=0]
+   * @param {import('../../types/entities').ContractGetLogsOptions} [options={}]
    * @returns {Promise<import('ethers').LogDescription[]>}
    */
   async getLogs(fromBlock, eventsNames = [], toBlock = 0, options = {}) {
@@ -243,9 +243,9 @@ export class Contract {
   /**
    * @public
    * @param {number} fromBlock
-   * @param {number} [toBlock]
-   * @param {string[]} [eventsNames]
-   * @param {import('../../types/entities').ContractGetLogsOptions} [options]
+   * @param {string[]} [eventsNames=[]]
+   * @param {number} [toBlock=0]
+   * @param {import('../../types/entities').ContractGetLogsOptions} [options={}]
    * @returns {AsyncGenerator<import('ethers').LogDescription, void>}
    */
   async *getLogsStream(

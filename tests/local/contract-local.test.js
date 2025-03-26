@@ -30,8 +30,8 @@ describe('Local Test of Contract', () => {
     );
 
     for (let i = 0; i < 10; i++) {
-      unit.add([i], storage.setFirstCall(i));
-      unit.add([i, i], storage.setSecondCall(i));
+      unit.add(storage.setFirstCall(i), [i]);
+      unit.add(storage.setSecondCall(i), [i, i]);
     }
     const result = await unit.run();
     expect(result).to.be.true;

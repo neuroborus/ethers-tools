@@ -31,7 +31,7 @@ export declare class MulticallUnit extends Contract {
 
   public clear(): void;
 
-  public add(tags: MulticallTags, contractCall: ContractCall): MulticallTags;
+  public add(contractCall: ContractCall, tags?: MulticallTags): MulticallTags;
 
   get tags(): Tagable[];
   get calls(): ContractCall[];

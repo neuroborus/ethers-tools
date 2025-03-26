@@ -9,16 +9,16 @@ const multicallProvider = new MulticallUnit(JSON_PROVIDER);
 describe('Test Multicall Unit', () => {
   test('Multicall should recognize static properly', () => {
     expect(multicallProvider.static).to.be.true;
-    multicallProvider.add(0, registryProvider.getOwnerCall());
+    multicallProvider.add(registryProvider.getOwnerCall(), 0);
     expect(multicallProvider.static).to.be.true;
-    multicallProvider.add(1, registryProvider.getRenounceOwnershipCall());
+    multicallProvider.add(registryProvider.getRenounceOwnershipCall(), 1);
     expect(multicallProvider.static).to.be.false;
   });
 
   test('Provider should not process write call', async () => {
     let error;
     try {
-      multicallProvider.add(1, registryProvider.getRenounceOwnershipCall());
+      multicallProvider.add(registryProvider.getRenounceOwnershipCall(), 1);
       await multicallProvider.run().catch((err) => (error = err));
     } catch (err) {
       error = err;
@@ -37,7 +37,7 @@ describe('Test Multicall Unit', () => {
   test('Should not allow simultaneous run', async () => {
     let error;
     try {
-      multicallProvider.add(1, registryProvider.getOwnerCall());
+      multicallProvider.add(registryProvider.getOwnerCall());
       await Promise.all([multicallProvider.run(), multicallProvider.run()]);
     } catch (err) {
       error = err;

@@ -24,14 +24,18 @@ contract SimpleStorage {
         emit SecondChanged(newValue, writeCount);
     }
 
-    function getFirst() public view returns (uint256) {
+    function getFirst() public view returns (uint256 firstValue) {
         return firstValue;
     }
-    function getSecond() public view returns (uint256) {
+    function getSecond() public view returns (uint256 secondValue) {
         return secondValue;
     }
 
-    function getWriteCount() public view returns (uint256) {
+    function getBoth() public view returns (uint256 firstValue, uint256 secondValue) {
+        return (firstValue, secondValue);
+    }
+
+    function getWriteCount() public view returns (uint256) {  // unnamed return
         return writeCount;
     }
 }

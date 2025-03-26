@@ -5,7 +5,7 @@
     "inputs": [],
     "outputs": [
       {
-        "name": "",
+        "name": "firstValue",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -18,7 +18,7 @@
     "inputs": [],
     "outputs": [
       {
-        "name": "",
+        "name": "secondValue",
         "type": "uint256",
         "internalType": "uint256"
       }

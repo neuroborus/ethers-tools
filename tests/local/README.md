@@ -22,6 +22,12 @@ First, make sure you have the following:
 ### Infrastructure
 
 - Run anvil
+- Build [SimpleStorage](SimpleStorage):
+```shell
+cd ./SimpleStorage
+forge init --force
+forge build
+```
 - Deploy [SimpleStorage](SimpleStorage):
 
 ```shell

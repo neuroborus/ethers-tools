@@ -47,7 +47,11 @@ export declare class MulticallUnit extends Contract {
 
   private _getDecodableData(tags: MulticallTags): MulticallDecodableData | null;
   public getSingle<T>(tags: MulticallTags): T | undefined;
+  public getSingleOrThrow<T>(tags: MulticallTags): T;
   public getArray<T>(tags: MulticallTags, deep?: boolean): T | undefined;
+  public getArrayOrThrow<T>(tags: MulticallTags, deep?: boolean): T;
+  public getObject<T>(tags: MulticallTags, deep?: boolean): T | undefined;
+  public getObjectOrThrow<T>(tags: MulticallTags, deep?: boolean): T;
 
   public run(options?: MulticallOptions): Promise<boolean>;
   private _processStaticCalls(

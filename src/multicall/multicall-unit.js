@@ -203,6 +203,17 @@ export class MulticallUnit extends Contract {
     );
     return value;
   }
+  /**
+   * @template T
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @returns {T}
+   */
+  getSingleOrThrow(tags) {
+    const single = this.getSingle(tags);
+    if (!single) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
+    return single;
+  }
 
   /**
    * @template T
@@ -218,6 +229,47 @@ export class MulticallUnit extends Contract {
       .decodeFunctionResult(data.call.method, data.rawData)
       .toArray(deep);
     return array;
+  }
+  /**
+   * @template T
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {boolean} [deep=false]
+   * @returns {T}
+   */
+  getArrayOrThrow(tags, deep = false) {
+    const array = this.getArray(tags, deep);
+    if (!array) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
+    return array;
+  }
+
+  /**
+   * @template T
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {boolean} [deep=false]
+   * @returns {T | undefined}
+   */
+  getObject(tags, deep = false) {
+    const data = this._getDecodableData(multicallNormalizeTags(tags));
+    if (!data) return undefined;
+    const decoded = data.call.contractInterface.decodeFunctionResult(
+      data.call.method,
+      data.rawData
+    );
+
+    return decoded.toObject(deep);
+  }
+  /**
+   * @template T
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @returns {T}
+   */
+  getObjectOrThrow(tags) {
+    const obj = this.getObject(tags);
+    if (!obj) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
+    return obj;
   }
 
   /**

@@ -211,4 +211,29 @@ describe('Local Test of MulticallUnit - Testnet', () => {
     expect(error).to.be.match(new RegExp(/aborted/));
     expect(unit.success).to.be.false;
   });
+
+  test('getObject - named', async () => {
+    const unit = new MulticallUnit(
+      WALLET,
+      {
+        highPriorityTxs: true,
+        maxStaticCallsStack: 2,
+      },
+      MULTICALL_ADDRESS
+    );
+
+    unit.add(0, storage.setFirstCall(0));
+    unit.add(1, storage.setSecondCall(1));
+
+    unit.add(2, storage.getBothCall());
+
+    const result = await unit.run();
+
+    const both = unit.getObjectOrThrow(2);
+
+    expect(both['first']).to.be.eq(0n);
+    expect(both['second']).to.be.eq(1n);
+
+    expect(result).to.be.true;
+  });
 });

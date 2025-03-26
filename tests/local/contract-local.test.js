@@ -81,7 +81,7 @@ describe('Local Test of Contract', () => {
     let error;
     try {
       await Promise.all([
-        storage.getLogs(-1000, [], 0, {
+        storage.getLogs(-10, [], 0, {
           signals: [controller.signal],
         }),
         controller.abortAsync(10),

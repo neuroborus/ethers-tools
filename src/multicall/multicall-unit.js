@@ -247,17 +247,18 @@ export class MulticallUnit extends Contract {
    * @template T
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
+   * @param {boolean} [deep=false]
    * @returns {T | undefined}
    */
-  getObject(tags) {
-    const single = this.getSingle(tags);
-    if (!single) return undefined;
+  getObject(tags, deep = false) {
+    const data = this._getDecodableData(multicallNormalizeTags(tags));
+    if (!data) return undefined;
+    const decoded = data.call.contractInterface.decodeFunctionResult(
+      data.call.method,
+      data.rawData
+    );
 
-    if (single && typeof single === 'object' && !Array.isArray(single)) {
-      return structuredClone(single);
-    }
-
-    return typeof single === 'object' ? { ...single } : single;
+    return decoded.toObject(deep);
   }
   /**
    * @template T

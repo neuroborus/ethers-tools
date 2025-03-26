@@ -20,19 +20,28 @@ First, you will need **ethers** v6. Then, you can install:
 
 ## Quickstart
 
+#### Multicall usage
+
 ```typescript
 import { ethers } from 'ethers';
 import { Contract, ContractCall, MulticallUnit } from 'ethers-tools';
+
+/**
+ * --- Setup ---
+ */
 
 const RPC_URL = 'https://eth.llamarpc.com';
 const ADDRESS = '0xbaA999AC55EAce41CcAE355c77809e68Bb345170';
 const PROVIDER = new ethers.WebSocketProvider(RPC_URL);
 
+/**
+ * --- Contract Definition ---
+ */
+
 const RegistryAbi = '<abi>';
 class RegistryContract extends Contract {
-  constructor() {
-    // Can be passed here
-    super(RegistryAbi, ADDRESS, PROVIDER);
+  constructor(address: string, provider: Provider) {
+    super(RegistryAbi, address, provider);
   }
 
   getAddressesProvidersListCall(): ContractCall {
@@ -42,37 +51,58 @@ class RegistryContract extends Contract {
   owner(): Promise<string> {
     return this.call<string>('owner');
   }
-
   getOwnerCall(): ContractCall {
     return this.getCall('owner');
   }
 }
 
-// USING MULTICALL EXAMPLE
+/**
+ * --- Using Multicall ---
+ */
 
-const registry = new RegistryContract();
+const registry = new RegistryContract(ADDRESS, PROVIDER);
 const unit = new MulticallUnit(PROVIDER); // Unit-of-Work - like
 
+// Add calls to unit
 const listCallTag = unit.add(
   'listCall',
   registry.getAddressesProvidersListCall()
-); // 'listCall'
-const ownerCallTag = unit.add('ownerCall', registry.getOwnerCall()); // 'ownerCall'
+);
+const ownerCallTag = unit.add('ownerCall', registry.getOwnerCall());
 
+// Execute multicall
 const result: boolean = await unit.run();
 
-const list = unit.getArray<string[]>(listCallTag);
-const owner = unit.getSingle<string>(ownerCallTag);
+// Retrieve results
+const list = unit.getArrayOrThrow<string[]>(listCallTag); // Also exists just `unit.getArray`
+const owner = unit.getSingleOrThrow<string>(ownerCallTag); //  // Also exists just `unit.getSingle`
+/* And you can use in some cases `unit.getObject<T>`, like:
+* const obj = unit.getObjectOrThrow<ObjType>(objTag);
+ That will parse data to object according to ABI
+ */
 const directOwner = await registry.owner();
 
 console.log(result);
 console.log(owner === directOwner);
 console.log(JSON.stringify(list));
+```
 
-// LISTENING EVENTS EXAMPLE
+#### Expected output
 
+```
+true
+true
+["0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e","0xcfBf336fe147D643B9Cb705648500e101504B16d","0xeBa440B438Ad808101d1c451C1C5322c90BEFCdA"]
+```
+
+#### Events listening
+
+```typescript
+/**
+ * --- Listening to Events ---
+ */
 const data: Set<{ address: string; id: bigint }> = new Set();
-// Start listening
+// Realtime listening
 registry.listenEvent(
   'AddressesProviderRegistered',
   (addressesProvider: string, id: bigint) => {
@@ -82,20 +112,12 @@ registry.listenEvent(
     });
   }
 );
-// Find historical data for the last 30000 blocks
+// Historical logs from last 30,000 blocks
 for await (const dLog of registry.getLogsStream(-30000, [
   'AddressesProviderRegistered',
 ])) {
   data.add(dLog);
 }
-```
-
-#### Expected output
-
-```
-true
-true
-["0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e","0xcfBf336fe147D643B9Cb705648500e101504B16d","0xeBa440B438Ad808101d1c451C1C5322c90BEFCdA"]
 ```
 
 ## Contract
@@ -234,7 +256,11 @@ constructor(
 - `add(tags: MulticallTags, contractCall: ContractCall): MulticallTags` // Add new call.
 - `run(options?: MulticallOptions): Promise<boolean>` // Executes the multicall operation.
 - `getSingle<T>(tags: MulticallTags): T | undefined` // Get single primitive value as result.
+- `getSingleOrThrow<T>(tags: MulticallTags): T;` // The same but throws an error if not found.
 - `getArray<T>(tags: MulticallTags, deep?: boolean): T | undefined` // Get array as result.
+- `getArrayOrThrow<T>(tags: MulticallTags, deep?: boolean): T;` // The same but throws an error if not found.
+- `getObject<T>(tags: MulticallTags, deep?: boolean): T | undefined` // Get object as result. Works with named fields in ABI.
+- `getObjectOrThrow<T>(tags: MulticallTags, deep?: boolean): T;` // The same but throws an error if not found.
 - `getRaw(tags: MulticallTags): string | TransactionResponse | TransactionReceipt | undefined;` // Get the raw multicall result. Returns TransactionResponse if a mutable call has been processed. Returns TransactionReceipt if the `waitForTxs` flag was turned on.
 - `isSuccess(tags: MulticallTags): boolean | undefined` // Check if call finished successfully.
 

@@ -225,16 +225,14 @@ describe('Local Test of MulticallUnit - Testnet', () => {
     unit.add(0, storage.setFirstCall(0));
     unit.add(1, storage.setSecondCall(1));
 
-    unit.add(2, storage.getFirstCall(2));
-    unit.add(3, storage.getSecondCall(3));
+    unit.add(2, storage.getBothCall());
 
     const result = await unit.run();
 
-    const first = unit.getObjectOrThrow(2);
-    const second = unit.getObjectOrThrow(3);
+    const both = unit.getObjectOrThrow(2);
 
-    expect(first['firstValue']).to.be.eq(2);
-    expect(second['secondValue']).to.be.eq(3);
+    expect(both['first']).to.be.eq(0n);
+    expect(both['second']).to.be.eq(1n);
 
     expect(result).to.be.true;
   });

@@ -23,11 +23,13 @@ First, make sure you have the following:
 
 - Run anvil
 - Build [SimpleStorage](SimpleStorage):
+
 ```shell
 cd ./SimpleStorage
 forge init --force
 forge build
 ```
+
 - Deploy [SimpleStorage](SimpleStorage):
 
 ```shell

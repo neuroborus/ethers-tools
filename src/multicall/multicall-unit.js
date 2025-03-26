@@ -11,6 +11,7 @@ import { isStaticArray } from '../helpers/index.js';
 import { MULTICALL_ERRORS } from '../errors/index.js';
 import { Contract } from '../contract/index.js';
 import { checkSignals, raceWithSignals } from '../utils/index.js';
+import { multicallGenerateTag } from './multicall-generate-tag.js';
 import { multicallNormalizeTags } from './multicall-normalize-tags.js';
 import { multicallSplitCalls } from './multicall-split-calls.js';
 
@@ -96,11 +97,11 @@ export class MulticallUnit extends Contract {
 
   /**
    * @public
-   * @param {import('../../types/entities').MulticallTags} tags
    * @param {import('../../types/entities').ContractCall} contractCall
+   * @param {import('../../types/entities').MulticallTags} [tags=multicallGenerateTag()]
    * @returns {import('../../types/entities').MulticallTags}
    */
-  add(tags, contractCall) {
+  add(contractCall, tags = multicallGenerateTag()) {
     this._units.set(multicallNormalizeTags(tags), contractCall);
     return tags;
   }

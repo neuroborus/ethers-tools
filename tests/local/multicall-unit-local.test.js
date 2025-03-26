@@ -26,8 +26,8 @@ describe('Local Test of MulticallUnit - Testnet', () => {
 
     for (let i = 0; i < 1; i++) {
       // 1 because of non-waitWithSignals test - it will require replacement fee
-      unit.add([i], storage.setFirstCall(i));
-      unit.add([i, i], storage.setSecondCall(i));
+      unit.add(storage.setFirstCall(i), [i]);
+      unit.add(storage.setSecondCall(i), [i, i]);
     }
     const result = await unit.run();
     expect(result).to.be.true;
@@ -55,8 +55,8 @@ describe('Local Test of MulticallUnit - Testnet', () => {
     );
 
     for (let i = 0; i < 3; i++) {
-      unit.add([i], storage.setFirstCall(i));
-      unit.add([i, i], storage.setSecondCall(i));
+      unit.add(storage.setFirstCall(i), [i]);
+      unit.add(storage.setSecondCall(i), [i, i]);
     }
     const result = await unit.run();
     expect(result).to.be.true;
@@ -81,8 +81,8 @@ describe('Local Test of MulticallUnit - Testnet', () => {
     );
 
     for (let i = 0; i < 3; i++) {
-      unit.add([i], storage.setFirstCall(i));
-      unit.add([i, i], storage.setSecondCall(i));
+      unit.add(storage.setFirstCall(i), [i]);
+      unit.add(storage.setSecondCall(i), [i, i]);
     }
     const result = await unit.run();
     expect(result).to.be.true;
@@ -112,11 +112,11 @@ describe('Local Test of MulticallUnit - Testnet', () => {
     );
 
     for (let i = 0; i < 3; i++) {
-      unit.add([i], storage.getFirstCall());
-      unit.add([i, i], storage.getSecondCall());
+      unit.add(storage.getFirstCall(), [i]);
+      unit.add(storage.getSecondCall(), [i, i]);
     }
-    unit.add(1, storage.setFirstCall(9));
-    unit.add(2, storage.setSecondCall(9));
+    unit.add(storage.setFirstCall(9), 1);
+    unit.add(storage.setSecondCall(9), 2);
     const result = await unit.run();
     expect(result).to.be.true;
 
@@ -140,8 +140,8 @@ describe('Local Test of MulticallUnit - Testnet', () => {
     );
 
     for (let i = 0; i < 1; i++) {
-      unit.add([i], storage.getFirstCall());
-      unit.add([i, i], storage.getSecondCall());
+      unit.add(storage.getFirstCall(), [i]);
+      unit.add(storage.getSecondCall(), [i, i]);
     }
     const result = await unit.run();
     expect(result).to.be.true;
@@ -168,8 +168,8 @@ describe('Local Test of MulticallUnit - Testnet', () => {
     );
 
     for (let i = 0; i < 1; i++) {
-      unit.add([i], storage.getFirstCall());
-      unit.add([i, i], storage.getSecondCall());
+      unit.add(storage.getFirstCall(), [i]);
+      unit.add(storage.getSecondCall(), [i, i]);
     }
     let error;
 
@@ -197,8 +197,8 @@ describe('Local Test of MulticallUnit - Testnet', () => {
     );
 
     for (let i = 0; i < 1; i++) {
-      unit.add([i], storage.getFirstCall());
-      unit.add([i, i], storage.getSecondCall());
+      unit.add(storage.getFirstCall(), [i]);
+      unit.add(storage.getSecondCall(), [i, i]);
     }
 
     let error;
@@ -222,10 +222,10 @@ describe('Local Test of MulticallUnit - Testnet', () => {
       MULTICALL_ADDRESS
     );
 
-    unit.add(0, storage.setFirstCall(0));
-    unit.add(1, storage.setSecondCall(1));
+    unit.add(storage.setFirstCall(0), 0);
+    unit.add(storage.setSecondCall(1), 1);
 
-    unit.add(2, storage.getBothCall());
+    unit.add(storage.getBothCall(), 2);
 
     const result = await unit.run();
 

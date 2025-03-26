@@ -10,12 +10,10 @@ describe('E2E Test MulticallUnit', () => {
   test('Test of MulticallUnit', async () => {
     const unit = new MulticallUnit(JSON_PROVIDER);
     const listCall = registry.getAddressesProvidersListCall();
-    const listCallTag = 'listCall';
-    unit.add(listCallTag, listCall);
+    const listCallTag = unit.add(listCall);
 
     const ownerCall = registry.getOwnerCall();
-    const ownerCallTag = 'ownerCall';
-    unit.add(ownerCallTag, ownerCall);
+    const ownerCallTag = unit.add(ownerCall);
 
     const result = await unit.run();
 
@@ -45,15 +43,15 @@ describe('E2E Test MulticallUnit', () => {
     const listCallTag = 'listCall';
     const listCallRecTags = { ...recTagsTemplate, call: listCallTag };
     const listCallArrTags = [...arrTagsTemplate, listCallTag];
-    unit.add(listCallRecTags, listCall);
-    unit.add(listCallArrTags, listCall);
+    unit.add(listCall, listCallRecTags);
+    unit.add(listCall, listCallArrTags);
 
     const ownerCall = registry.getOwnerCall();
     const ownerCallTag = 'ownerCall';
     const ownerCallRecTags = { ...recTagsTemplate, call: ownerCallTag };
     const ownerCallArrTags = [...arrTagsTemplate, ownerCallTag];
-    unit.add(ownerCallRecTags, ownerCall);
-    unit.add(ownerCallArrTags, ownerCall);
+    unit.add(ownerCall, ownerCallRecTags);
+    unit.add(ownerCall, ownerCallArrTags);
 
     const result = await unit.run();
 
@@ -77,17 +75,11 @@ describe('E2E Test MulticallUnit', () => {
     const listCall = registry.getAddressesProvidersListCall();
     const ownerCall = registry.getOwnerCall();
 
-    const listCallTag1 = 'listCall';
-    unit.add(listCallTag1, listCall);
+    const listCallTag1 = unit.add(listCall);
+    const ownerCallTag1 = unit.add(ownerCall);
+    const listCallTag2 = unit.add(listCall);
 
-    const ownerCallTag1 = 'ownerCall1';
-    unit.add(ownerCallTag1, ownerCall);
-
-    const listCallTag2 = 'listCall2';
-    unit.add(listCallTag2, listCall);
-
-    const ownerCallTag2 = 'ownerCall2';
-    unit.add(ownerCallTag2, ownerCall);
+    const ownerCallTag2 = unit.add(ownerCall);
 
     const result = await unit.run();
 

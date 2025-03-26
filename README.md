@@ -64,18 +64,15 @@ const registry = new RegistryContract(ADDRESS, PROVIDER);
 const unit = new MulticallUnit(PROVIDER); // Unit-of-Work - like
 
 // Add calls to unit
-const listCallTag = unit.add(
-  'listCall',
-  registry.getAddressesProvidersListCall()
-);
-const ownerCallTag = unit.add('ownerCall', registry.getOwnerCall());
+const listCallTag = unit.add(registry.getAddressesProvidersListCall());
+const ownerCallTag = unit.add(registry.getOwnerCall());
 
 // Execute multicall
 const result: boolean = await unit.run();
 
 // Retrieve results
-const list = unit.getArrayOrThrow<string[]>(listCallTag); // Also exists just `unit.getArray`
-const owner = unit.getSingleOrThrow<string>(ownerCallTag); //  // Also exists just `unit.getSingle`
+const list = unit.getArrayOrThrow<string[]>(listCallTag); // Or just `unit.getArray`
+const owner = unit.getSingleOrThrow<string>(ownerCallTag); //  // Or just `unit.getSingle`
 /* And you can use in some cases `unit.getObject<T>`, like:
 * const obj = unit.getObjectOrThrow<ObjType>(objTag);
  That will parse data to object according to ABI
@@ -253,7 +250,7 @@ constructor(
 ```
 
 - `clear(): void` // Completely clears the Unit for reuse.
-- `add(tags: MulticallTags, contractCall: ContractCall): MulticallTags` // Add new call.
+- `add(contractCall: ContractCall, tags?: MulticallTags): MulticallTags` // Add new call. Returns Tags as reference.
 - `run(options?: MulticallOptions): Promise<boolean>` // Executes the multicall operation.
 - `getSingle<T>(tags: MulticallTags): T | undefined` // Get single primitive value as result.
 - `getSingleOrThrow<T>(tags: MulticallTags): T;` // The same but throws an error if not found.

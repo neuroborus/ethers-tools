@@ -289,6 +289,91 @@ Since in the case of a **mutable call**, the result is not returned but rather *
 As a result, using `allowFailure` will lead to inconsistent results.
 When using `allowFailure`, _make sure that you do not need to track the outcome of a specific execution_.
 
+## Config
+
+In addition to setting configuration at specific points—such as when creating objects or making calls—you can also modify
+the **global configuration** for the entire project.
+
+```typescript
+import { config } from 'ethers-tools';
+
+config.multicallUnit.mutableCalls.stackLimit = 3;
+```
+
+```typescript
+export type Config = {
+  multicallUnit: {
+    /** Multicall contract address */
+    address: string;
+
+    /** If true, allows individual call failures without failing the entire batch */
+    allowFailure: boolean;
+
+    /** If true, waits for transaction confirmations in mutable calls */
+    waitForTxs: boolean;
+
+    /** Settings for read-only (eth_call) operations */
+    staticCalls: {
+      /** Maximum number of static calls per batch */
+      stackLimit: number;
+
+      /** Timeout for each static call in milliseconds */
+      timeoutMs: number;
+    };
+
+    /** Settings for state-changing (eth_sendTransaction) operations */
+    mutableCalls: {
+      /** Maximum number of mutable calls per batch */
+      stackLimit: number;
+
+      /** Timeout for each mutable call in milliseconds */
+      timeoutMs: number;
+    };
+
+    /** Settings for waiting on call results */
+    waitCalls: {
+      /** Timeout for awaiting results of batched calls */
+      timeoutMs: number;
+    };
+
+    /** Settings for prioritizing certain calls */
+    priorityCalls: {
+      /** Priority multiplier to determine weight/importance of selected calls */
+      multiplier: number;
+    };
+  };
+
+  contract: {
+    /** Global static call timeout for individual contract methods */
+    staticCalls: {
+      /** Timeout for static contract calls in milliseconds */
+      timeoutMs: number;
+    };
+
+    /** Global mutable call timeout for individual contract methods */
+    mutableCalls: {
+      /** Timeout for mutable contract calls in milliseconds */
+      timeoutMs: number;
+    };
+
+    /** Parameters for event log fetching and listening */
+    logsGathering: {
+      /** Number of blocks to query per log fetch request */
+      blocksStep: number;
+
+      /** Delay between log fetch requests in milliseconds */
+      delayMs: number;
+    };
+  };
+
+  /** Default priority settings for individual call execution */
+  priorityCalls: {
+    /** Default multiplier for priority call handling */
+    multiplier: number;
+  };
+};
+```
+
 ## Other
 
 #### Helpers
@@ -323,6 +408,10 @@ export declare const isStaticMethod: (
 
 ```typescript
 export declare const isStaticArray: (calls: ContractCall[]) => boolean; // Accepts array of ContractCalls and says if all methods are static
+```
+
+```typescript
+export declare const multicallGenerateTag: () => string; // Generates Tag for Multicall Unit
 ```
 
 #### Entities

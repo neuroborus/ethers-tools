@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { waitForAddressTxs } from '../../src/helpers/index.js';
+import { waitForAddressTxs } from '../../src/index.js';
 import { MulticallUnit } from '../../src/index.js';
 import {
   AsyncAbortController,

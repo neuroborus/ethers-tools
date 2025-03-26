@@ -1,17 +1,6 @@
-import {
-  Contract as EthersContract,
-  Provider,
-  Signer,
-  WebSocketProvider,
-} from 'ethers';
+import { Contract as EthersContract, WebSocketProvider } from 'ethers';
 import { CallMutability } from '../entities/index.js';
-import {
-  DEFAULT_LOGS_BLOCKS_STEP,
-  DEFAULT_LOGS_DELAY_MS,
-  DEFAULT_MULTICALL_ALLOW_FAILURE,
-  DEFAULT_MUTABLE_CALLS_TIMEOUT_MS,
-  DEFAULT_STATIC_CALLS_TIMEOUT_MS,
-} from '../constants.js';
+import { config } from '../config.js';
 import { isSigner, isStaticMethod, priorityCall } from '../helpers/index.js';
 import { CONTRACTS_ERRORS } from '../errors/index.js';
 import {
@@ -80,8 +69,8 @@ export class Contract {
     this.readonly = !this.callable || !(driver && isSigner(driver)); // if Signer
     this.contract = new EthersContract(address, abi, driver);
     this._contractOptions = {
-      staticCallsTimeoutMs: DEFAULT_STATIC_CALLS_TIMEOUT_MS,
-      mutableCallsTimeoutMs: DEFAULT_MUTABLE_CALLS_TIMEOUT_MS,
+      staticCallsTimeoutMs: config.contract.staticCalls.timeoutMs,
+      mutableCallsTimeoutMs: config.contract.mutableCalls.timeoutMs,
       ...options,
     };
   }
@@ -196,7 +185,7 @@ export class Contract {
     return {
       method: methodName,
       target: this.address,
-      allowFailure: DEFAULT_MULTICALL_ALLOW_FAILURE,
+      allowFailure: config.multicallUnit.allowFailure,
       callData: this.interface.encodeFunctionData(methodName, args),
       stateMutability: functionFragment.stateMutability,
       contractInterface: this.interface,
@@ -258,8 +247,11 @@ export class Contract {
 
     const streamOptions = {
       blocksStep:
-        this._contractOptions.logsBlocksStep || DEFAULT_LOGS_BLOCKS_STEP,
-      delayMs: this._contractOptions.logsDelayMs || DEFAULT_LOGS_DELAY_MS,
+        this._contractOptions.logsBlocksStep ||
+        config.contract.logsGathering.blocksStep,
+      delayMs:
+        this._contractOptions.logsDelayMs ||
+        config.contract.logsGathering.delayMs,
       ...options,
     };
 

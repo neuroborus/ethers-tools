@@ -1,12 +1,7 @@
 import { TransactionReceipt } from 'ethers';
 import { Multicall3Abi } from '../abis/index.js';
 import { CallMutability } from '../entities/index.js';
-import {
-  DEFAULT_MULTICALL_MUTABLE_CALLS_STACK_LIMIT,
-  DEFAULT_MULTICALL_STATIC_CALLS_STACK_LIMIT,
-  DEFAULT_WAIT_CALLS_TIMEOUT_MS,
-  MULTICALL_ADDRESS,
-} from '../constants.js';
+import { config } from '../config.js';
 import { isStaticArray } from '../helpers/index.js';
 import { MULTICALL_ERRORS } from '../errors/index.js';
 import { Contract } from '../contract/index.js';
@@ -64,21 +59,17 @@ export class MulticallUnit extends Contract {
    * @param {import('../../types/entities').MulticallOptions} [options={}]
    * @param {string} [multicallAddress=MULTICALL_ADDRESS]
    */
-  constructor(driver, options = {}, multicallAddress = MULTICALL_ADDRESS) {
-    const contractOptions = {
-      forceMutability: options.forceMutability,
-      highPriorityTxs: options.highPriorityTxs,
-      priorityOptions: options.priorityOptions,
-      signals: options.signals,
-      staticCallsTimeoutMs: options.staticCallsTimeoutMs,
-      mutableCallsTimeoutMs: options.mutableCallsTimeoutMs,
-    };
-    super(Multicall3Abi, multicallAddress, driver, contractOptions);
+  constructor(
+    driver,
+    options = {},
+    multicallAddress = config.multicallUnit.address
+  ) {
+    super(Multicall3Abi, multicallAddress, driver);
     this._multicallOptions = {
-      maxStaticCallsStack: DEFAULT_MULTICALL_STATIC_CALLS_STACK_LIMIT,
-      maxMutableCallsStack: DEFAULT_MULTICALL_MUTABLE_CALLS_STACK_LIMIT,
-      waitForTxs: true, // The safest way to handle nonce in transactions
-      waitCallsTimeoutMs: DEFAULT_WAIT_CALLS_TIMEOUT_MS,
+      maxStaticCallsStack: config.multicallUnit.staticCalls.stackLimit,
+      maxMutableCallsStack: config.multicallUnit.mutableCalls.stackLimit,
+      waitForTxs: config.multicallUnit.waitForTxs,
+      waitCallsTimeoutMs: config.multicallUnit.waitCalls.timeoutMs,
       ...options,
     };
   }

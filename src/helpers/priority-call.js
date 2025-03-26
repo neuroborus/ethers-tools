@@ -1,4 +1,4 @@
-import { DEFAULT_PRIORITY_CALL_MULTIPLIER } from '../constants.js';
+import { config } from '../config.js';
 import { checkSignals, createTimeoutSignal } from '../utils/index.js';
 
 /**
@@ -19,7 +19,7 @@ export async function priorityCall(
   options = {}
 ) {
   const localOptions = {
-    multiplier: DEFAULT_PRIORITY_CALL_MULTIPLIER,
+    multiplier: config.priorityCalls.multiplier,
     ...options,
   };
 

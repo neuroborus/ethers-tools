@@ -1,5 +1,6 @@
 export const MULTICALL_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11';
 
+export const DEFAULT_MULTICALL_WAIT_FOR_TXS = true; // The safest way to handle nonce in transactions
 export const DEFAULT_MULTICALL_ALLOW_FAILURE = false;
 export const DEFAULT_MULTICALL_STATIC_CALLS_STACK_LIMIT = 50;
 export const DEFAULT_MULTICALL_MUTABLE_CALLS_STACK_LIMIT = 10;

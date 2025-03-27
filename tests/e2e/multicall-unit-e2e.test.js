@@ -92,4 +92,23 @@ describe('E2E Test MulticallUnit', () => {
     expect(owner1).to.be.equal(owner2);
     expect(result).to.be.true;
   });
+
+  test('get - array and all', async () => {
+    const unit = new MulticallUnit(JSON_PROVIDER);
+    const listCall = registry.getAddressesProvidersListCall();
+    const listCallTag = unit.add(listCall);
+
+    const ownerCall = registry.getOwnerCall();
+    const ownerCallTag = unit.add(ownerCall);
+
+    const result = await unit.run();
+
+    const list = unit.get(listCallTag);
+    const owner = unit.get(ownerCallTag);
+    const [list2, owner2] = unit.getAll();
+
+    expect(list[0]).to.be.equal(list2[0]);
+    expect(owner).to.be.eq(owner2);
+    expect(result).to.be.true;
+  });
 });

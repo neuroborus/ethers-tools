@@ -64,22 +64,30 @@ const registry = new RegistryContract(ADDRESS, PROVIDER);
 const unit = new MulticallUnit(PROVIDER); // Unit-of-Work - like
 
 // Add calls to unit
-const listCallTag = unit.add(registry.getAddressesProvidersListCall());
-const ownerCallTag = unit.add(registry.getOwnerCall());
-
+unit.add(registry.getAddressesProvidersListCall());
+unit.add(registry.getOwnerCall());
 // Execute multicall
 const result: boolean = await unit.run();
+const [list, owner] = unit.getAll<[string[], string]>();
 
-// Retrieve results
-const list = unit.getArrayOrThrow<string[]>(listCallTag); // Or just `unit.getArray`
-const owner = unit.getSingleOrThrow<string>(ownerCallTag); //  // Or just `unit.getSingle`
-/* And you can use in some cases `unit.getObject<T>`, like:
-* const obj = unit.getObjectOrThrow<ObjType>(objTag);
- That will parse data to object according to ABI
+/*
+ * Alternatively, both can be retrieved using tags (tags are highly flexible references and can be created manually):
+ *
+ * const listCallTag = unit.add(registry.getAddressesProvidersListCall());
+ * const ownerCallTag = unit.add(registry.getOwnerCall(), 'ownerCallTag');
+ *
+ * // Execute multicall
+ * const result: boolean = await unit.run();
+ *
+ * // Retrieve results
+ * // - Returned as an Object if the response has named fields
+ * // - Otherwise returned as an Array or Single value
+ * const list = unit.get<string[]>(listCallTag);
+ * const owner = unit.get<string>(ownerCallTag);
  */
-const directOwner = await registry.owner();
 
 console.log(result);
+const directOwner = await registry.owner();
 console.log(owner === directOwner);
 console.log(JSON.stringify(list));
 ```
@@ -155,7 +163,7 @@ providing an ethers `Signer` (e.g, `Wallet`) as the driver.
 - `getCall(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall` // Creates a `ContractCall` for `MulticallUnit`. Throws an error if unable to create. You can do force replacement with a `callData` parameter.
 - `listenEvent(eventName: string, listener: Listener): Promise<Contract>` // Creates event listener on the contract. WebsocketProvider is required.
 - `getLogs(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): Promise<Log[]>` // Synchronous log retrieval. 'fromBlocks' can have a minus sign, which means 'n blocks ago'.
-- `getLogsStream(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): AsyncGenerator<Log, void, unknown>` // Asynchronous way to getting logs
+- `getLogsStream(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): AsyncGenerator<Log, void, unknown>` // Asynchronous way to getting logs.
 
 #### ContractOptions
 
@@ -249,17 +257,21 @@ constructor(
 );
 ```
 
-- `clear(): void` // Completely clears the Unit for reuse.
 - `add(contractCall: ContractCall, tags?: MulticallTags): MulticallTags` // Add new call. Returns Tags as reference.
 - `run(options?: MulticallOptions): Promise<boolean>` // Executes the multicall operation.
+- `get<T>(tags: MulticallTags): T | null` // Returns the decoded result for the specified tag.
+- `getOrThrow<T>(tags: MulticallTags): T` // Same as get(), but throws an error if the result is missing or cannot be decoded.
+- `getAll<T>(deep?: boolean): T` // Returns all decoded results for all registered tags. If deep is true, nested structures will also be deeply converted to plain objects/arrays when applicable.
+- `getAllOrThrow<T>(deep?: boolean): T` // Same as getAll(), but throws an error if any expected result is missing or not decodable.
 - `getSingle<T>(tags: MulticallTags): T | undefined` // Get single primitive value as result.
 - `getSingleOrThrow<T>(tags: MulticallTags): T;` // The same but throws an error if not found.
 - `getArray<T>(tags: MulticallTags, deep?: boolean): T | undefined` // Get array as result.
-- `getArrayOrThrow<T>(tags: MulticallTags, deep?: boolean): T;` // The same but throws an error if not found.
+- `getArrayOrThrow<T>(tags: MulticallTags, deep?: boolean): T` // The same but throws an error if not found.
 - `getObject<T>(tags: MulticallTags, deep?: boolean): T | undefined` // Get object as result. Works with named fields in ABI.
-- `getObjectOrThrow<T>(tags: MulticallTags, deep?: boolean): T;` // The same but throws an error if not found.
-- `getRaw(tags: MulticallTags): string | TransactionResponse | TransactionReceipt | undefined;` // Get the raw multicall result. Returns TransactionResponse if a mutable call has been processed. Returns TransactionReceipt if the `waitForTxs` flag was turned on.
+- `getObjectOrThrow<T>(tags: MulticallTags, deep?: boolean): T` // The same but throws an error if not found.
+- `getRaw(tags: MulticallTags): string | TransactionResponse | TransactionReceipt | undefined` // Get the raw multicall result. Returns TransactionResponse if a mutable call has been processed. Returns TransactionReceipt if the `waitForTxs` flag was turned on.
 - `isSuccess(tags: MulticallTags): boolean | undefined` // Check if call finished successfully.
+- `clear(): void` // Completely clears the Unit for reuse.
 
 #### MulticallOptions
 

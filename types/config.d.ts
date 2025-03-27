@@ -1,3 +1,3 @@
 import { GlobalConfig } from './global-config';
 
-export const config: GlobalConfig;
+export declare const config: GlobalConfig;

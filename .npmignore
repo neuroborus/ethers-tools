@@ -1,5 +1,7 @@
 # Test files and coverage
-anvil-data-tmp
+tests/
+coverage/
+.nyc_output/
 
 # Environment and local config
 .env

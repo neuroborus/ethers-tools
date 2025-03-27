@@ -1,6 +1,6 @@
 {
   "name": "ethers-tools",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Contains tools for work with web3 contracts.",
   "main": "./src/index.js",
   "types": "./types/index.d.ts",
@@ -14,7 +14,7 @@
     "url": "https://github.com/neuroborus/ethers-tools.git"
   },
   "engines": {
-    "node": "*"
+    "node": ">=18"
   },
   "author": {
     "name": "neuroborus"

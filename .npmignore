@@ -2,6 +2,10 @@
 tests/
 coverage/
 .nyc_output/
+vitest.config.js
+
+# Prettier
+.prettierrc
 
 # Environment and local config
 .env

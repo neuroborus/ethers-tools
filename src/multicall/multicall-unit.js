@@ -182,13 +182,74 @@ export class MulticallUnit extends Contract {
 
   /**
    * @template T
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {boolean} [deep=false]
+   * @returns {T | null}
+   */
+  get(tags, deep = false) {
+    const data = this._getDecodableData(multicallNormalizeTags(tags));
+    if (!data) return null;
+
+    const decoded = data.call.contractInterface.decodeFunctionResult(
+      data.call.method,
+      data.rawData
+    );
+    const outputs = data.call.contractInterface.getFunction(
+      data.call.method
+    ).outputs;
+    if (!outputs || outputs.length === 0) {
+      return null;
+    }
+    // Only one output - returns just single (sometimes can work with arrays (like [address[]]))
+    if (outputs.length === 1) {
+      return decoded[0];
+    }
+    // Outputs are named in ABI - object can be formed
+    // If output is named - object is preferable
+    if (outputs.every((param) => !!param.name)) {
+      return decoded.toObject(deep);
+    }
+    // In other case - return array
+    return decoded.toArray(deep);
+  }
+  /**
+   * @template T
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {boolean} [deep=false]
+   * @returns {T}
+   */
+  getOrThrow(tags, deep = false) {
+    const value = this.get(tags, deep);
+    if (value === null) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
+    return value;
+  }
+
+  /**
+   * @template T
+   * @param {boolean} [deep=false]
+   * @returns {T}
+   */
+  getAll(deep = false) {
+    return this.tags.map((tag) => this.get(tag, deep));
+  }
+  /**
+   * @template T
+   * @param {boolean} [deep=false]
+   * @returns {T}
+   */
+  getAllOrThrow(deep = false) {
+    return this.tags.map((tag) => this.getOrThrow(tag, deep));
+  }
+
+  /**
+   * @template T
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
-   * @returns {T | undefined}
+   * @returns {T | null}
    */
   getSingle(tags) {
     const data = this._getDecodableData(multicallNormalizeTags(tags));
-    if (!data) return undefined;
+    if (!data) return null;
     const [value] = data.call.contractInterface.decodeFunctionResult(
       data.call.method,
       data.rawData
@@ -203,7 +264,7 @@ export class MulticallUnit extends Contract {
    */
   getSingleOrThrow(tags) {
     const single = this.getSingle(tags);
-    if (!single) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
+    if (single === null) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
     return single;
   }
 
@@ -212,11 +273,11 @@ export class MulticallUnit extends Contract {
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
    * @param {boolean} [deep=false]
-   * @returns {T | undefined}
+   * @returns {T | null}
    */
   getArray(tags, deep = false) {
     const data = this._getDecodableData(multicallNormalizeTags(tags));
-    if (!data) return undefined;
+    if (data === null) return null;
     const [array] = data.call.contractInterface
       .decodeFunctionResult(data.call.method, data.rawData)
       .toArray(deep);
@@ -231,7 +292,7 @@ export class MulticallUnit extends Contract {
    */
   getArrayOrThrow(tags, deep = false) {
     const array = this.getArray(tags, deep);
-    if (!array) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
+    if (array === null) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
     return array;
   }
 
@@ -240,11 +301,11 @@ export class MulticallUnit extends Contract {
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
    * @param {boolean} [deep=false]
-   * @returns {T | undefined}
+   * @returns {T | null}
    */
   getObject(tags, deep = false) {
     const data = this._getDecodableData(multicallNormalizeTags(tags));
-    if (!data) return undefined;
+    if (data === null) return null;
     const decoded = data.call.contractInterface.decodeFunctionResult(
       data.call.method,
       data.rawData
@@ -260,7 +321,7 @@ export class MulticallUnit extends Contract {
    */
   getObjectOrThrow(tags) {
     const obj = this.getObject(tags);
-    if (!obj) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
+    if (obj === null) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
     return obj;
   }
 

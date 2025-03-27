@@ -124,8 +124,8 @@ describe('Local Test of MulticallUnit - Testnet', () => {
       expect(unit.getSingle([i])).to.be.eq(9n);
       expect(unit.getSingle([i, i])).to.be.eq(9n);
     }
-    expect(unit.getSingle(1)).to.be.undefined;
-    expect(unit.getSingle(2)).to.be.undefined;
+    expect(unit.getSingle(1)).to.be.null;
+    expect(unit.getSingle(2)).to.be.null;
     expect(unit.getRaw(1)).to.be.instanceOf(TransactionReceipt);
     expect(unit.getRaw(2)).to.be.instanceOf(TransactionReceipt);
   });
@@ -233,6 +233,34 @@ describe('Local Test of MulticallUnit - Testnet', () => {
 
     expect(both['first']).to.be.eq(0n);
     expect(both['second']).to.be.eq(1n);
+
+    expect(result).to.be.true;
+  });
+
+  test('get - object and single', async () => {
+    const unit = new MulticallUnit(
+      WALLET,
+      {
+        highPriorityTxs: true,
+        maxStaticCallsStack: 2,
+      },
+      MULTICALL_ADDRESS
+    );
+
+    unit.add(storage.setFirstCall(0), 0);
+    unit.add(storage.setSecondCall(1), 1);
+
+    unit.add(storage.getBothCall(), 2);
+    unit.add(storage.getFirstCall(), 3);
+
+    const result = await unit.run();
+
+    const both = unit.get(2);
+    const first = unit.get(3);
+
+    expect(both['first']).to.be.eq(0n);
+    expect(both['second']).to.be.eq(1n);
+    expect(first).to.be.eq(0n);
 
     expect(result).to.be.true;
   });

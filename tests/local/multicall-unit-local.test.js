@@ -1,6 +1,6 @@
 import { TransactionReceipt, TransactionResponse } from 'ethers';
 import { describe, expect, test } from 'vitest';
-import { waitForAddressTxs, MulticallUnit } from '../../src/index.js';
+import { MulticallUnit, waitForAddressTxs } from '../../src/index.js';
 import {
   AsyncAbortController,
   MULTICALL_ADDRESS,

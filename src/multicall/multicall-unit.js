@@ -113,7 +113,7 @@ export class MulticallUnit extends Contract {
   /**
    * Adds a batch of contract call with associated tags.
    * @public
-   * @param {MulticallAssociatedCall[]} associatedCalls
+   * @param {import('../../types/entities').MulticallAssociatedCall[]} associatedCalls
    * @returns {import('../../types/entities').MulticallTags}
    */
   addBatch(associatedCalls) {

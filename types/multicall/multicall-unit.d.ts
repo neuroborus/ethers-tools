@@ -10,8 +10,8 @@ import {
   MulticallTags,
   Tagable,
 } from '../entities';
+import { MulticallAssociatedCall } from '../entities';
 import { Contract } from '../contract';
-import { MulticallAssociatedCall } from './multicall-associated-call';
 import { MulticallDecodableData } from './multicall-decodable-data';
 import { MulticallResponse } from './multicall-response';
 

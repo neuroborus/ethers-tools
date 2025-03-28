@@ -22,7 +22,11 @@ describe('RegistryContract E2E Tests', () => {
 
     const collectedLogs = new Set();
 
-    for await (const log of registry.getLogsStream(fromBlock, eventNames, toBlock)) {
+    for await (const log of registry.getLogsStream(
+      fromBlock,
+      eventNames,
+      toBlock
+    )) {
       collectedLogs.add(log);
     }
 

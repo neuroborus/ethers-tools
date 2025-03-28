@@ -64,15 +64,19 @@ const registry = new RegistryContract(ADDRESS, PROVIDER);
 const unit = new MulticallUnit(PROVIDER); // Unit-of-Work - like
 
 // Add calls to unit
-unit.add(registry.getAddressesProvidersListCall());
-unit.add(registry.getOwnerCall());
+unit.addBatch([
+  { call: registry.getAddressesProvidersListCall() },
+  { call: registry.getOwnerCall() },
+]);
 // Execute multicall
-const result: boolean = await unit.run();
+const isSuccess: boolean = await unit.run();
 const [list, owner] = unit.getAll<[string[], string]>();
 
 /*
- * Alternatively, both can be retrieved using tags (tags are highly flexible references and can be created manually):
+ * Alternatively, both can be retrieved using tags
+ * (tags are highly flexible references and can be created manually):
  *
+ * // Add calls to unit (addBatch also returns tags)
  * const listCallTag = unit.add(registry.getAddressesProvidersListCall());
  * const ownerCallTag = unit.add(registry.getOwnerCall(), 'ownerCallTag');
  *
@@ -86,7 +90,7 @@ const [list, owner] = unit.getAll<[string[], string]>();
  * const owner = unit.get<string>(ownerCallTag);
  */
 
-console.log(result);
+console.log(isSuccess);
 const directOwner = await registry.owner();
 console.log(owner === directOwner);
 console.log(JSON.stringify(list));
@@ -258,6 +262,7 @@ constructor(
 ```
 
 - `add(contractCall: ContractCall, tags?: MulticallTags): MulticallTags` // Add new call. Returns Tags as reference.
+- `addBatch(associatedCalls: MulticallAssociatedCall[]): MulticallTags[]` // Adds a batch of contract call with associated tags.
 - `run(options?: MulticallOptions): Promise<boolean>` // Executes the multicall operation.
 - `get<T>(tags: MulticallTags): T | null` // Returns the decoded result for the specified tag.
 - `getOrThrow<T>(tags: MulticallTags): T` // Same as get(), but throws an error if the result is missing or cannot be decoded.
@@ -291,6 +296,15 @@ export interface MulticallOptions {
 export enum CallMutability {
   Static = 'STATIC',
   Mutable = 'MUTABLE',
+}
+```
+
+#### MulticallAssociatedCall
+
+```typescript
+export interface MulticallAssociatedCall {
+  call: ContractCall;
+  tags?: Tagable;
 }
 ```
 

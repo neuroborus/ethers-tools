@@ -6,42 +6,54 @@ import { JSON_PROVIDER, RegistryContract } from '../stub.js';
 const registryProvider = new RegistryContract(JSON_PROVIDER);
 const multicallProvider = new MulticallUnit(JSON_PROVIDER);
 
-describe('Test Multicall Unit', () => {
-  test('Multicall should recognize static properly', () => {
+describe('MulticallUnit Behavior and Edge Cases', () => {
+  test('detects whether all calls are static (readonly)', () => {
     expect(multicallProvider.static).to.be.true;
-    multicallProvider.add(registryProvider.getOwnerCall(), 0);
+
+    multicallProvider.add(registryProvider.getOwnerCall(), 0); // static call
     expect(multicallProvider.static).to.be.true;
-    multicallProvider.add(registryProvider.getRenounceOwnershipCall(), 1);
+
+    multicallProvider.add(registryProvider.getRenounceOwnershipCall(), 1); // write call
     expect(multicallProvider.static).to.be.false;
   });
 
-  test('Provider should not process write call', async () => {
+  test('throws on write call using readonly contract', async () => {
     let error;
+
     try {
       multicallProvider.add(registryProvider.getRenounceOwnershipCall(), 1);
       await multicallProvider.run().catch((err) => (error = err));
     } catch (err) {
       error = err;
     }
+
     expect(error).toEqual(CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION);
     expect(multicallProvider.static).to.be.false;
   });
 
-  test('Should be cleared completely', () => {
+  test('clears internal call and tag state correctly', () => {
     multicallProvider.clear();
-    expect(multicallProvider.calls.length).to.be.equal(0);
-    expect(multicallProvider.tags.length).to.be.equal(0);
+
+    expect(multicallProvider.calls.length).to.equal(0);
+    expect(multicallProvider.tags.length).to.equal(0);
     expect(multicallProvider.success).to.be.undefined;
   });
 
-  test('Should not allow simultaneous run', async () => {
+  test('prevents simultaneous execution of .run()', async () => {
+    multicallProvider.clear();
+    multicallProvider.add(registryProvider.getOwnerCall());
+
     let error;
+
     try {
-      multicallProvider.add(registryProvider.getOwnerCall());
-      await Promise.all([multicallProvider.run(), multicallProvider.run()]);
+      await Promise.all([
+        multicallProvider.run(),
+        multicallProvider.run(),
+      ]);
     } catch (err) {
       error = err;
     }
+
     expect(error).toEqual(MULTICALL_ERRORS.SIMULTANEOUS_INVOCATIONS);
   });
 });

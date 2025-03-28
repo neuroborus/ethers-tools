@@ -11,6 +11,7 @@ import {
   Tagable,
 } from '../entities';
 import { Contract } from '../contract';
+import { MulticallAssociatedCall } from './multicall-associated-call';
 import { MulticallDecodableData } from './multicall-decodable-data';
 import { MulticallResponse } from './multicall-response';
 
@@ -64,6 +65,10 @@ export declare class MulticallUnit extends Contract {
    * Adds a contract call to the batch with associated tags.
    */
   public add(contractCall: ContractCall, tags?: MulticallTags): MulticallTags;
+  /**
+   * Adds a batch of contract call with associated tags.
+   */
+  public addBatch(associatedCalls: MulticallAssociatedCall[]): MulticallTags[];
 
   /**
    * Returns the list of normalized tags in order of addition.

@@ -111,6 +111,21 @@ export class MulticallUnit extends Contract {
   }
 
   /**
+   * Adds a batch of contract call with associated tags.
+   * @public
+   * @param {MulticallAssociatedCall[]} associatedCalls
+   * @returns {import('../../types/entities').MulticallTags}
+   */
+  addBatch(associatedCalls) {
+    return associatedCalls.map((c) => {
+      const call = c.call;
+      const tags = c.tags ?? multicallGenerateTag();
+      this.add(call, tags);
+      return tags;
+    });
+  }
+
+  /**
    * Returns the list of normalized tags in order of addition.
    * @public
    * @returns {import('../../types/entities').Tagable[]}

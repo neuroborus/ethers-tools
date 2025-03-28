@@ -5,7 +5,11 @@ import { config } from '../config.js';
 import { isStaticArray } from '../helpers/index.js';
 import { MULTICALL_ERRORS } from '../errors/index.js';
 import { Contract } from '../contract/index.js';
-import { checkSignals, raceWithSignals } from '../utils/index.js';
+import {
+  checkSignals,
+  raceWithSignals,
+  waitWithSignals,
+} from '../utils/index.js';
 import { multicallGenerateTag } from './multicall-generate-tag.js';
 import { multicallNormalizeTags } from './multicall-normalize-tags.js';
 import { multicallSplitCalls } from './multicall-split-calls.js';
@@ -81,6 +85,7 @@ export class MulticallUnit extends Contract {
       maxMutableCallsStack: config.multicallUnit.mutableCalls.batchLimit,
       waitForTxs: config.multicallUnit.waitForTxs,
       waitCallsTimeoutMs: config.multicallUnit.waitCalls.timeoutMs,
+      batchDelayMs: config.multicallUnit.batchDelayMs,
       ...options,
     };
   }
@@ -114,15 +119,10 @@ export class MulticallUnit extends Contract {
    * Adds a batch of contract call with associated tags.
    * @public
    * @param {import('../../types/entities').MulticallAssociatedCall[]} associatedCalls
-   * @returns {import('../../types/entities').MulticallTags}
+   * @returns {import('../../types/entities').MulticallTags[]}
    */
   addBatch(associatedCalls) {
-    return associatedCalls.map((c) => {
-      const call = c.call;
-      const tags = c.tags ?? multicallGenerateTag();
-      this.add(call, tags);
-      return tags;
-    });
+    return associatedCalls.map((c) => this.add(c.call, c.tags));
   }
 
   /**
@@ -451,6 +451,7 @@ export class MulticallUnit extends Contract {
         );
 
         this._saveResponse(iterationResponse, iterationIndexes, tags);
+        await waitWithSignals(runOptions.batchDelayMs, runOptions.signals);
       }
 
       // Process static
@@ -474,6 +475,7 @@ export class MulticallUnit extends Contract {
         );
 
         this._saveResponse(iterationResponse, iterationIndexes, tags);
+        await waitWithSignals(runOptions.batchDelayMs, runOptions.signals);
       }
     } catch (error) {
       this._lastSuccess = false;

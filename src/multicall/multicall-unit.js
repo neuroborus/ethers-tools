@@ -12,42 +12,53 @@ import { multicallSplitCalls } from './multicall-split-calls.js';
 
 const aggregate3 = 'aggregate3';
 
+/**
+ * MulticallUnit extends the Contract class to support batching multiple contract calls
+ * into a single transaction or RPC call using the Multicall3 standard.
+ * It supports static and mutable calls, result tagging, and decoding.
+ */
 export class MulticallUnit extends Contract {
   /**
+   * Stores tagged contract calls.
    * @protected
    * @readonly
    * @type {Map<import('../../types/entities').Tagable, ContractCall>}
    */
   _units = new Map();
   /**
+   * Stores raw responses from multicall (success flags and data).
    * @protected
-   * @readonly
    * @type {import('../../types/multicall').MulticallResponse[]}
    */
   _response = [];
   /**
+   * Stores raw data from each tagged result.
    * @protected
    * @readonly
    * @type {Map<import('../../types/entities').Tagable, string>}
    */
   _rawData = new Map();
   /**
+   * Stores success status for each call tag.
    * @protected
    * @readonly
    * @type {Map<import('../../types/entities').Tagable, boolean>}
    */
   _callsSuccess = new Map();
   /**
+   * Last overall success status of multicall execution.
    * @protected
    * @type {boolean | undefined}
    */
   _lastSuccess;
   /**
+   * Whether multicall execution is currently in progress.
    * @protected
    * @type {boolean}
    */
   _isExecuting = false;
   /**
+   * Multicall configuration options.
    * @protected
    * @readonly
    * @type {import('../../types/entities').MulticallOptions}
@@ -66,8 +77,8 @@ export class MulticallUnit extends Contract {
   ) {
     super(Multicall3Abi, multicallAddress, driver);
     this._multicallOptions = {
-      maxStaticCallsStack: config.multicallUnit.staticCalls.stackLimit,
-      maxMutableCallsStack: config.multicallUnit.mutableCalls.stackLimit,
+      maxStaticCallsStack: config.multicallUnit.staticCalls.batchLimit,
+      maxMutableCallsStack: config.multicallUnit.mutableCalls.batchLimit,
       waitForTxs: config.multicallUnit.waitForTxs,
       waitCallsTimeoutMs: config.multicallUnit.waitCalls.timeoutMs,
       ...options,
@@ -75,6 +86,7 @@ export class MulticallUnit extends Contract {
   }
 
   /**
+   * Resets internal state: clears stored calls, responses, and results.
    * @public
    * @returns {void}
    */
@@ -87,6 +99,7 @@ export class MulticallUnit extends Contract {
   }
 
   /**
+   * Adds a contract call to the batch with associated tags.
    * @public
    * @param {import('../../types/entities').ContractCall} contractCall
    * @param {import('../../types/entities').MulticallTags} [tags=multicallGenerateTag()]
@@ -98,6 +111,7 @@ export class MulticallUnit extends Contract {
   }
 
   /**
+   * Returns the list of normalized tags in order of addition.
    * @public
    * @returns {import('../../types/entities').Tagable[]}
    */
@@ -105,6 +119,7 @@ export class MulticallUnit extends Contract {
     return Array.from(this._units.keys()); // The order is guaranteed
   }
   /**
+   * Returns the list of added contract calls in order of addition.
    * @public
    * @returns {import('../../types/entities').ContractCall[]}
    */
@@ -112,6 +127,7 @@ export class MulticallUnit extends Contract {
     return Array.from(this._units.values()); // The order is guaranteed
   }
   /**
+   * Returns the raw response array for all calls.
    * @public
    * @returns {import('../../types/multicall').MulticallResponse[]}
    */
@@ -119,6 +135,7 @@ export class MulticallUnit extends Contract {
     return this._response;
   }
   /**
+   * Returns whether the last multicall run succeeded entirely.
    * @public
    * @returns {boolean | undefined}
    */
@@ -126,6 +143,7 @@ export class MulticallUnit extends Contract {
     return this._lastSuccess;
   }
   /**
+   * Determines whether all current calls are static.
    * @public
    * @returns {boolean}
    */
@@ -134,6 +152,7 @@ export class MulticallUnit extends Contract {
     return isStaticArray(this.calls);
   }
   /**
+   * Indicates if a multicall run is in progress.
    * @public
    * @returns {boolean}
    */
@@ -142,6 +161,7 @@ export class MulticallUnit extends Contract {
   }
 
   /**
+   * Returns success status for a specific tag.
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
    * @returns {boolean | undefined}
@@ -150,6 +170,7 @@ export class MulticallUnit extends Contract {
     return this._callsSuccess.get(multicallNormalizeTags(tags));
   }
   /**
+   * Returns raw result data for a specific tag.
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
    * @returns {string | import('ethers').TransactionResponse | import('ethers').TransactionReceipt | undefined}
@@ -181,13 +202,26 @@ export class MulticallUnit extends Contract {
   }
 
   /**
+   * Decodes and returns a smart result for the given tag.
+   * Automatically chooses the most appropriate return format based on ABI:
+   * - If the method has exactly one output (e.g. returns address or address[]), that value is returned directly.
+   * - If all outputs are named (e.g. returns (uint id, address user)), an object is returned.
+   * - Otherwise, an array of values is returned.
+   *
+   * If the call is mutable, and returns a transaction or receipt instead of data, it is returned as-is.
    * @template T
    * @param {import('../../types/entities').MulticallTags} tags
    * @param {boolean} [deep=false]
    * @returns {T | null}
    */
   get(tags, deep = false) {
-    const data = this._getDecodableData(multicallNormalizeTags(tags));
+    {
+      const raw = this.getRaw(tags);
+      if (!raw) return null;
+      if (typeof raw !== 'string') return raw; // Transaction or Receipt for mutable call
+    }
+
+    const data = this._getDecodableData(tags);
     if (!data) return null;
 
     const decoded = data.call.contractInterface.decodeFunctionResult(
@@ -213,6 +247,7 @@ export class MulticallUnit extends Contract {
     return decoded.toArray(deep);
   }
   /**
+   * Like get(), but throws if the result is not found or cannot be decoded.
    * @template T
    * @param {import('../../types/entities').MulticallTags} tags
    * @param {boolean} [deep=false]
@@ -225,6 +260,7 @@ export class MulticallUnit extends Contract {
   }
 
   /**
+   * Returns an array of all decoded results.
    * @template T
    * @param {boolean} [deep=false]
    * @returns {T}
@@ -233,6 +269,7 @@ export class MulticallUnit extends Contract {
     return this.tags.map((tag) => this.get(tag, deep));
   }
   /**
+   * Like getAll(), but throws if any result is not found.
    * @template T
    * @param {boolean} [deep=false]
    * @returns {T}
@@ -242,13 +279,14 @@ export class MulticallUnit extends Contract {
   }
 
   /**
+   * Returns a single decoded value (first output).
    * @template T
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
    * @returns {T | null}
    */
   getSingle(tags) {
-    const data = this._getDecodableData(multicallNormalizeTags(tags));
+    const data = this._getDecodableData(tags);
     if (!data) return null;
     const [value] = data.call.contractInterface.decodeFunctionResult(
       data.call.method,
@@ -257,6 +295,7 @@ export class MulticallUnit extends Contract {
     return value;
   }
   /**
+   * Like getSingle(), but throws if result is not found.
    * @template T
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
@@ -269,6 +308,7 @@ export class MulticallUnit extends Contract {
   }
 
   /**
+   * Returns decoded result - tuple as an array.
    * @template T
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
@@ -276,14 +316,14 @@ export class MulticallUnit extends Contract {
    * @returns {T | null}
    */
   getArray(tags, deep = false) {
-    const data = this._getDecodableData(multicallNormalizeTags(tags));
+    const data = this._getDecodableData(tags);
     if (data === null) return null;
-    const [array] = data.call.contractInterface
+    return data.call.contractInterface
       .decodeFunctionResult(data.call.method, data.rawData)
       .toArray(deep);
-    return array;
   }
   /**
+   * Like getArray(), but throws if result is not found.
    * @template T
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
@@ -297,6 +337,7 @@ export class MulticallUnit extends Contract {
   }
 
   /**
+   * Returns decoded result - tuple as an object.
    * @template T
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
@@ -304,7 +345,7 @@ export class MulticallUnit extends Contract {
    * @returns {T | null}
    */
   getObject(tags, deep = false) {
-    const data = this._getDecodableData(multicallNormalizeTags(tags));
+    const data = this._getDecodableData(tags);
     if (data === null) return null;
     const decoded = data.call.contractInterface.decodeFunctionResult(
       data.call.method,
@@ -314,6 +355,7 @@ export class MulticallUnit extends Contract {
     return decoded.toObject(deep);
   }
   /**
+   * Like getObject(), but throws if result is not found.
    * @template T
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
@@ -326,6 +368,8 @@ export class MulticallUnit extends Contract {
   }
 
   /**
+   * Executes all added calls in batches, depending on their mutability.
+   * Fills internal response state, handles signal support and batch limits.
    * @public
    * @param {import('../../types/entities').MulticallOptions} [options={}]
    * @returns {Promise<boolean>}

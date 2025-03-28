@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'vitest';
 import { MulticallUnit } from '../../src';
-import { JSON_PROVIDER, RegistryContract } from '../stub.js';
+import { CometContract, JSON_PROVIDER, RegistryContract } from '../stub.js';
 
 export const registry = new RegistryContract(JSON_PROVIDER);
+export const comet = new CometContract(JSON_PROVIDER);
 
 describe('E2E Test MulticallUnit', () => {
   let prevOwner;
@@ -17,7 +18,7 @@ describe('E2E Test MulticallUnit', () => {
 
     const result = await unit.run();
 
-    const list = unit.getArray(listCallTag);
+    const list = unit.getSingle(listCallTag);
     const owner = unit.getSingle(ownerCallTag);
 
     prevOwner = owner;
@@ -55,8 +56,8 @@ describe('E2E Test MulticallUnit', () => {
 
     const result = await unit.run();
 
-    const listRec = unit.getArray(listCallRecTags);
-    const listArr = unit.getArray(listCallArrTags);
+    const listRec = unit.getSingle(listCallRecTags);
+    const listArr = unit.getSingle(listCallArrTags);
 
     const ownerRec = unit.getSingle(ownerCallRecTags);
     const ownerArr = unit.getSingle(ownerCallArrTags);
@@ -83,9 +84,9 @@ describe('E2E Test MulticallUnit', () => {
 
     const result = await unit.run();
 
-    const list1 = unit.getArray(listCallTag1);
+    const list1 = unit.getSingle(listCallTag1);
     const owner1 = unit.getSingle(ownerCallTag1);
-    const list2 = unit.getArray(listCallTag2);
+    const list2 = unit.getSingle(listCallTag2);
     const owner2 = unit.getSingle(ownerCallTag2);
 
     expect(list1[0]).to.be.equal(list2[0]);
@@ -93,22 +94,34 @@ describe('E2E Test MulticallUnit', () => {
     expect(result).to.be.true;
   });
 
-  test('get - array and all', async () => {
+  test('get - array, object and single', async () => {
     const unit = new MulticallUnit(JSON_PROVIDER);
+
     const listCall = registry.getAddressesProvidersListCall();
     const listCallTag = unit.add(listCall);
 
     const ownerCall = registry.getOwnerCall();
     const ownerCallTag = unit.add(ownerCall);
 
+    const basicCall = comet.getUserBasicCall();
+    const basicCallTag = unit.add(basicCall);
+
     const result = await unit.run();
 
     const list = unit.get(listCallTag);
     const owner = unit.get(ownerCallTag);
-    const [list2, owner2] = unit.getAll();
+    const basic = unit.get(basicCallTag);
+    const [list2, owner2, basic2] = unit.getAll();
 
+    const listAsArray = unit.getArray(listCallTag);
+    const listAsSingle = unit.getSingle(listCallTag);
+    const basicAsArray = unit.getArray(basicCallTag);
+
+    expect(listAsArray[0][0]).to.be.equal(listAsSingle[0]);
     expect(list[0]).to.be.equal(list2[0]);
     expect(owner).to.be.eq(owner2);
+    expect(basic['principal']).to.be.eq(basic2['principal']);
+    expect(basicAsArray[0]).to.be.eq(basic['principal']);
     expect(result).to.be.true;
   });
 });

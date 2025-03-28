@@ -17,6 +17,7 @@ export type GlobalConfig = {
     priorityCalls: {
       multiplier: number;
     };
+    batchDelayMs: number;
   };
   contract: {
     staticCalls: {

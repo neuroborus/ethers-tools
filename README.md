@@ -292,6 +292,7 @@ export interface MulticallOptions {
   staticCallsTimeoutMs?: number; // Timeout for static calls in ms. DEFAULT: 10000
   mutableCallsTimeoutMs?: number; // Timeout for mutable calls in ms. DEFAULT: 20000
   waitCallsTimeoutMs?: number; // Timeout for waiting in ms. DEFAULT: 30000
+  batchDelayMs?: number; // Delay between batch calls. DEFAULT: 0
 }
 export enum CallMutability {
   Static = 'STATIC',

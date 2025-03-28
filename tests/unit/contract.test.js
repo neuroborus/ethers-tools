@@ -4,7 +4,7 @@ import { CONTRACTS_ERRORS } from '../../src/errors';
 import { JSON_PROVIDER, JSON_WALLET, RegistryContract } from '../stub.js';
 
 const registryProvider = new RegistryContract(JSON_PROVIDER); // read-only instance
-const registryWallet = new RegistryContract(JSON_WALLET);     // write-enabled instance
+const registryWallet = new RegistryContract(JSON_WALLET); // write-enabled instance
 
 describe('RegistryContract Metadata & Behavior', () => {
   test('read-only contract (provider) should be callable', () => {

@@ -74,9 +74,7 @@ describe('MulticallUnit E2E Tests', () => {
     expect(JSON.stringify(cachedList))
       .to.be.equal(JSON.stringify(listObjResult))
       .to.be.equal(JSON.stringify(listArrResult));
-    expect(cachedOwner)
-      .to.be.equal(ownerObjResult)
-      .to.be.equal(ownerArrResult);
+    expect(cachedOwner).to.be.equal(ownerObjResult).to.be.equal(ownerArrResult);
   });
 
   test('honors maxStaticCallsStack limit', async () => {

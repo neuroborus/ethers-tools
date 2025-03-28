@@ -46,10 +46,7 @@ describe('MulticallUnit Behavior and Edge Cases', () => {
     let error;
 
     try {
-      await Promise.all([
-        multicallProvider.run(),
-        multicallProvider.run(),
-      ]);
+      await Promise.all([multicallProvider.run(), multicallProvider.run()]);
     } catch (err) {
       error = err;
     }

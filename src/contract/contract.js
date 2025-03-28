@@ -11,28 +11,33 @@ import {
 } from '../utils/index.js';
 
 /**
- * Base contract.
+ * Base wrapper around ethers.js Contract with built-in ContractCall (multicall) support,
+ * signal-based timeouts/aborts, dynamic mutability detection, and event/log streaming.
  */
 export class Contract {
   /**
+   * Contract address.
    * @readonly
    * @public
    * @type {string}
    */
   address;
   /**
+   * Indicates whether the contract instance is callable (i.e., has both address and driver).
    * @readonly
    * @public
    * @type {boolean}
    */
   callable;
   /**
+   * Indicates whether the contract instance is readonly (i.e., with no Signer).
    * @readonly
    * @public
    * @type {boolean}
    */
   readonly;
   /**
+   * Internal ethers.js Contract instance.
    * @readonly
    * @public
    * @type {EthersContract}
@@ -76,6 +81,7 @@ export class Contract {
   }
 
   /**
+   * Current provider, if available.
    * @public
    * @returns {import('ethers').Provider | undefined}
    */
@@ -86,6 +92,7 @@ export class Contract {
   }
 
   /**
+   * Current signer, if available.
    * @public
    * @returns {import('ethers').Signer | undefined}
    */
@@ -96,6 +103,7 @@ export class Contract {
   }
 
   /**
+   * Contract interface (ABI parser).
    * @public
    * @returns {import('ethers').Interface}
    */
@@ -104,6 +112,8 @@ export class Contract {
   }
 
   /**
+   * Executes a contract method call or transaction depending on its mutability.
+   * Automatically handles static calls vs. mutations and supports signal-based timeouts/aborts.
    * @template T
    * @public
    * @param {string} methodName
@@ -169,6 +179,7 @@ export class Contract {
   }
 
   /**
+   * Creates a low-level call object for a given method, for use with multicall or batching.
    * @public
    * @param {string} methodName
    * @param {any[]} [args=[]]
@@ -194,6 +205,7 @@ export class Contract {
   }
 
   /**
+   * Subscribes to an on-chain event using a WebSocket provider.
    * @public
    * @param {string} eventName
    * @param {import('ethers').Listener} listener
@@ -208,6 +220,7 @@ export class Contract {
   }
 
   /**
+   * Fetches and decodes logs for given events between specified blocks.
    * @public
    * @param {number} fromBlock
    * @param {string[]} [eventsNames=[]]
@@ -230,6 +243,8 @@ export class Contract {
   }
 
   /**
+   * Asynchronous generator that yields logs one-by-one in batches.
+   * Allows for streaming consumption and signal-based cancellation.
    * @public
    * @param {number} fromBlock
    * @param {string[]} [eventsNames=[]]

@@ -297,7 +297,7 @@ export enum CallMutability {
 #### Warning (\*)
 
 Since in the case of a **mutable call**, the result is not returned but rather **a transaction or a receipt**,
-`getRaw` for a single **call stack** will provide the same information.
+`getRaw` for a single **calls batch** will provide the same information.
 As a result, using `allowFailure` will lead to inconsistent results.
 When using `allowFailure`, _make sure that you do not need to track the outcome of a specific execution_.
 
@@ -309,7 +309,7 @@ the **global configuration** for the entire project.
 ```typescript
 import { config } from 'ethers-tools';
 
-config.multicallUnit.mutableCalls.stackLimit = 3;
+config.multicallUnit.mutableCalls.batchLimit = 3;
 ```
 
 ```typescript
@@ -327,7 +327,7 @@ export type Config = {
     /** Settings for read-only (eth_call) operations */
     staticCalls: {
       /** Maximum number of static calls per batch */
-      stackLimit: number;
+      batchLimit: number;
 
       /** Timeout for each static call in milliseconds */
       timeoutMs: number;
@@ -336,7 +336,7 @@ export type Config = {
     /** Settings for state-changing (eth_sendTransaction) operations */
     mutableCalls: {
       /** Maximum number of mutable calls per batch */
-      stackLimit: number;
+      batchLimit: number;
 
       /** Timeout for each mutable call in milliseconds */
       timeoutMs: number;

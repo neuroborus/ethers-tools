@@ -4,11 +4,11 @@ export type GlobalConfig = {
     allowFailure: boolean;
     waitForTxs: boolean;
     staticCalls: {
-      stackLimit: number;
+      batchLimit: number;
       timeoutMs: number;
     };
     mutableCalls: {
-      stackLimit: number;
+      batchLimit: number;
       timeoutMs: number;
     };
     waitCalls: {

@@ -2,6 +2,8 @@
 
 [![npm version](https://badge.fury.io/js/ethers-tools.svg)](https://badge.fury.io/js/ethers-tools)
 
+- Here is [NestJS Wrapper](https://github.com/neuroborus/ethers-tools-nestjs)
+
 ## Description
 
 **ethers-tools** is a lightweight zero-dependency JavaScript/TypeScript library built on top of [ethers.js](https://github.com/ethers-io/ethers.js)

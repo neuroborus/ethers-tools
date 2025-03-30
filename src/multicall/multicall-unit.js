@@ -70,7 +70,7 @@ export class MulticallUnit extends Contract {
   _multicallOptions = {};
 
   /**
-   * @param {import('ethers').Provider | import('ethers').Signer | undefined} driver
+   * @param {import('ethers').Provider | import('ethers').Signer} driver
    * @param {import('../../types/entities').MulticallOptions} [options={}]
    * @param {string} [multicallAddress=MULTICALL_ADDRESS]
    */

@@ -13,12 +13,62 @@ import {
   ContractGetLogsOptions,
   ContractOptions,
 } from '../entities';
+import { DynamicContract } from './dynamic-contract';
+import { DynamicContractConstructor } from './dynamic-contract-constructor';
 
 /**
  * Base wrapper around ethers.js Contract with built-in ContractCall (multicall) support,
  * signal-based timeouts/aborts, dynamic mutability detection, and event/log streaming.
  */
 export declare class Contract {
+  /**
+   * Creates a subclass of the base `Contract` class, where all ABI-defined methods
+   * are automatically added as instance methods and `get<MethodName>Call()` accessors
+   * for use in multicall contexts.
+   *
+   * Each method from the ABI becomes available as:
+   * - `contract.methodName(args[], options?)` — for invoking the method
+   * - `contract.getMethodNameCall(args[], callData?)` — for generating a low-level `ContractCall`
+   *
+   * This is useful for dynamic contract wrapping when ABI is not known at compile time.
+   *
+   * @param abi - ABI definition for the contract (Interface or raw ABI).
+   * @param address - Deployed contract address (optional).
+   * @param driver - Ethers provider or signer (optional).
+   * @param options - Additional contract options (timeouts, mutability, etc.).
+   * @returns A dynamically generated class that extends the base `Contract` class with ABI methods.
+   */
+  static createAutoClass(
+    abi: Interface | InterfaceAbi,
+    address?: string,
+    driver?: Provider | Signer,
+    options?: ContractOptions
+  ): DynamicContractConstructor;
+  /**
+   * Creates an instance of a dynamically generated contract class, with all ABI methods
+   * and `get<MethodName>Call()` accessors added automatically at runtime.
+   *
+   * This is a convenience method equivalent to:
+   * ```ts
+   * const DynamicClass = Contract.createAutoClass(...);
+   * const instance = new DynamicClass();
+   * ```
+   *
+   * Useful for runtime-generated contract instances with full dynamic access to ABI-defined methods.
+   *
+   * @param abi - ABI definition for the contract (Interface or raw ABI).
+   * @param address - Deployed contract address (optional).
+   * @param driver - Ethers provider or signer (optional).
+   * @param options - Additional contract options (timeouts, mutability, etc.).
+   * @returns A ready-to-use contract instance with ABI methods and call generators.
+   */
+  static createAutoInstance(
+    abi: Interface | InterfaceAbi,
+    address?: string,
+    driver?: Provider | Signer,
+    options?: ContractOptions
+  ): DynamicContract;
+
   /**
    * Contract address.
    */

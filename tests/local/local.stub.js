@@ -62,8 +62,19 @@ export class SimpleStorage extends Contract {
 }
 
 export class AsyncAbortController extends AbortController {
-  async abortAsync(delay = 0) {
+  async abortAsync(delay = 10) {
     await new Promise((resolve) => setTimeout(resolve, delay));
     this.abort();
   }
 }
+
+export const SimpleStorageAutoInstance = Contract.createAutoInstance(
+  StorageAbi,
+  SIMPLE_STORAGE_ADDRESS,
+  WALLET
+);
+export const SimpleStorageAutoClass = Contract.createAutoClass(
+  StorageAbi,
+  SIMPLE_STORAGE_ADDRESS,
+  WALLET
+);

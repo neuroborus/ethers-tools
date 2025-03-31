@@ -16,9 +16,11 @@ export const WSS_WALLET = new ethers.Wallet(
   WSS_PROVIDER
 );
 
+const REGISTRY_ADDRESS = '0xbaA999AC55EAce41CcAE355c77809e68Bb345170';
+
 export class RegistryContract extends Contract {
   constructor(driver) {
-    super(RegistryAbi, '0xbaA999AC55EAce41CcAE355c77809e68Bb345170', driver);
+    super(RegistryAbi, REGISTRY_ADDRESS, driver);
   }
 
   getAddressesProvidersListCall() {
@@ -61,3 +63,14 @@ export class CometContract extends Contract {
     ]);
   }
 }
+
+export const RegistryAutoClass = Contract.createAutoClass(
+  RegistryAbi,
+  REGISTRY_ADDRESS,
+  JSON_PROVIDER
+);
+export const RegistryAutoInstance = Contract.createAutoInstance(
+  RegistryAbi,
+  REGISTRY_ADDRESS,
+  JSON_PROVIDER
+);

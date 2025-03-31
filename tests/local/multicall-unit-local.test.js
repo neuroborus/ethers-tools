@@ -5,13 +5,15 @@ import {
   AsyncAbortController,
   MULTICALL_ADDRESS,
   SimpleStorage,
+  SimpleStorageAutoClass,
+  SimpleStorageAutoInstance,
   WALLET,
 } from './local.stub.js';
 
 const storage = new SimpleStorage(WALLET);
 
 // noinspection t
-describe('MulticallUnit - Testnet E2E', () => {
+describe('MulticallUnit - Local Test', () => {
   test('does not wait for tx receipts (write calls with raw responses)', async () => {
     await waitForAddressTxs(WALLET.address, WALLET.provider);
 
@@ -252,6 +254,58 @@ describe('MulticallUnit - Testnet E2E', () => {
     expect(both['first']).to.be.eq(0n);
     expect(both['second']).to.be.eq(1n);
     expect(first).to.be.eq(0n);
+    expect(result).to.be.true;
+  });
+
+  test('using auto instance', async () => {
+    const unit = new MulticallUnit(
+      WALLET,
+      {
+        maxStaticCallsStack: 2,
+      },
+      MULTICALL_ADDRESS
+    );
+
+    unit.add(SimpleStorageAutoInstance.getSetFirstCall([33]), 0);
+    unit.add(SimpleStorageAutoInstance.getSetSecondCall([32]), 1);
+    unit.add(SimpleStorageAutoInstance.getBothCall(), 2);
+    unit.add(SimpleStorageAutoInstance.getFirstCall(), 3);
+
+    const result = await unit.run();
+
+    const both = unit.get(2);
+    const first = unit.get(3);
+
+    expect(both['first']).to.be.eq(33n);
+    expect(both['second']).to.be.eq(32n);
+    expect(first).to.be.eq(33n);
+    expect(result).to.be.true;
+  });
+
+  test('using auto class', async () => {
+    const unit = new MulticallUnit(
+      WALLET,
+      {
+        maxStaticCallsStack: 2,
+      },
+      MULTICALL_ADDRESS
+    );
+
+    const instance = new SimpleStorageAutoClass();
+
+    unit.add(instance.getSetFirstCall([32]), 0);
+    unit.add(instance.getSetSecondCall([31]), 1);
+    unit.add(instance.getBothCall(), 2);
+    unit.add(instance.getFirstCall(), 3);
+
+    const result = await unit.run();
+
+    const both = unit.get(2);
+    const first = unit.get(3);
+
+    expect(both['first']).to.be.eq(32n);
+    expect(both['second']).to.be.eq(31n);
+    expect(first).to.be.eq(32n);
     expect(result).to.be.true;
   });
 });

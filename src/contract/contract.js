@@ -9,12 +9,84 @@ import {
   raceWithSignals,
   waitWithSignals,
 } from '../utils/index.js';
+import { contractCreateCallName } from './contract-create-call-name.js';
 
 /**
  * Base wrapper around ethers.js Contract with built-in ContractCall (multicall) support,
  * signal-based timeouts/aborts, dynamic mutability detection, and event/log streaming.
  */
 export class Contract {
+  /**
+   * Creates a subclass of this contract class where all ABI methods are automatically added
+   * as instance methods (e.g., `contract.balanceOf(...)`) and corresponding call object getters
+   * (e.g., `contract.getBalanceOfCall(...)`).
+   *
+   * This is useful for dynamic or generic contract wrappers that can call any ABI-defined method
+   * or generate `ContractCall` objects for batching/multicall.
+   *
+   * @param {import('ethers').Interface | import('ethers').InterfaceAbi} abi - The contract ABI.
+   * @param {string} [address] - Optional deployed contract address.
+   * @param {import('ethers').Provider | import('ethers').Signer} [driver] - Optional provider or signer.
+   * @param {import('../../types/entities').ContractOptions} [options] - Optional contract options.
+   * @returns {import('../../types/contract').DynamicContractConstructor} A class constructor extending `Contract` with dynamic methods.
+   */
+  static createAutoClass(abi, address, driver, options) {
+    const Base = this;
+    // saw warning
+    return class extends Base {
+      constructor(args) {
+        super(
+          args?.abi || abi,
+          args?.address || address,
+          args?.driver || driver,
+          args?.options || options
+        );
+
+        for (const [_ind, fragment] of Object.entries(
+          this.interface.fragments
+        )) {
+          if (fragment.type === 'function') {
+            const name = fragment.name; // exists
+            if (!(name in this)) {
+              Object.defineProperty(this, name, {
+                value: async (args = [], options) =>
+                  this.call(name, args, options),
+                writable: true,
+                enumerable: true,
+              });
+            }
+            const getCallName = contractCreateCallName(name);
+
+            if (!(getCallName in this)) {
+              Object.defineProperty(this, getCallName, {
+                value: (args = [], callData = {}) =>
+                  this.getCall(name, args, callData),
+                writable: true,
+                enumerable: true,
+              });
+            }
+          }
+        }
+      }
+    };
+  }
+  /**
+   * Creates an instance of an auto-wrapped contract with dynamic ABI methods
+   * and `get<MethodName>Call()` getters added at runtime.
+   *
+   * Equivalent to: `new Contract.createAutoClass(...)()`
+   *
+   * @param {import('ethers').Interface | import('ethers').InterfaceAbi} abi - The contract ABI.
+   * @param {string} [address] - Optional deployed contract address.
+   * @param {import('ethers').Provider | import('ethers').Signer} [driver] - Optional provider or signer.
+   * @param {import('../../types/entities').ContractOptions} [options] - Optional contract options.
+   * @returns {import('../../types/contract').DynamicContract} A ready-to-use contract instance with dynamic method access.
+   */
+  static createAutoInstance(abi, address, driver, options) {
+    const AutoClass = this.createAutoClass(abi, address, driver, options);
+    return new AutoClass({ abi, address, driver, options });
+  }
+
   /**
    * Contract address.
    * @readonly

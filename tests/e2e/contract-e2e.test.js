@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import { RegistryContract, WSS_PROVIDER } from '../stub.js';
+import {
+  RegistryAutoClass,
+  RegistryAutoInstance,
+  RegistryContract,
+  WSS_PROVIDER,
+} from '../stub.js';
 
 // Instantiate the registry contract with the WebSocket provider
 export const registry = new RegistryContract(WSS_PROVIDER);
@@ -31,5 +36,16 @@ describe('RegistryContract E2E Tests', () => {
     }
 
     expect(collectedLogs.size).toEqual(1);
+  });
+
+  test('auto instance should contains generated methods', async () => {
+    const owner = await RegistryAutoInstance.owner();
+    expect(owner).to.be.length(42);
+  });
+
+  test('auto class should contains generated methods', async () => {
+    const instance = new RegistryAutoClass();
+    const owner = await instance.owner();
+    expect(owner).to.be.length(42);
   });
 });

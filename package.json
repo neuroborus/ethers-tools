@@ -1,6 +1,6 @@
 {
   "name": "ethers-tools",
-  "version": "2.3.7",
+  "version": "2.4.7",
   "description": "Contains tools for work with web3 contracts.",
   "main": "./src/index.js",
   "types": "./types/index.d.ts",

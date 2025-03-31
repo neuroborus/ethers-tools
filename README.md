@@ -2,6 +2,8 @@
 
 [![npm version](https://badge.fury.io/js/ethers-tools.svg)](https://badge.fury.io/js/ethers-tools)
 
+- Here is [NestJS Wrapper](https://github.com/neuroborus/ethers-tools-nestjs)
+
 ## Description
 
 **ethers-tools** is a lightweight zero-dependency JavaScript/TypeScript library built on top of [ethers.js](https://github.com/ethers-io/ethers.js)
@@ -20,7 +22,7 @@ First, you will need **ethers** v6. Then, you can install:
 
 ## Quickstart
 
-#### Multicall usage
+#### Multicall and Contract usage
 
 ```typescript
 import { ethers } from 'ethers';
@@ -55,6 +57,17 @@ class RegistryContract extends Contract {
     return this.getCall('owner');
   }
 }
+
+/*
+ * Alternatively, it can be created dynamically based on the ABI:
+ *
+ * const Registry = Contract.createAutoClass(RegistryAbi, ADDRESS, PROVIDER);
+ * const registry = new Registry(); // Or args can be bypassed for override
+ *
+ * Or just:
+ *
+ * const registry = Contract.createAutoInstance(RegistryAbi, ADDRESS, PROVIDER);
+ * */
 
 /**
  * --- Using Multicall ---
@@ -163,10 +176,28 @@ providing an ethers `Signer` (e.g, `Wallet`) as the driver.
   );
 ```
 
-- `call<T = unknown>(methodName: string, args?: any[], options?: CallOptions): Promise<T>` // Performs a single on-chain call for the contract. Throws an error if unable to execute.
-- `getCall(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall` // Creates a `ContractCall` for `MulticallUnit`. Throws an error if unable to create. You can do force replacement with a `callData` parameter.
+- `static createAutoClass(
+  abi: Interface | InterfaceAbi,
+  address?: string,
+  driver?: Provider | Signer,
+  options?: ContractOptions
+): DynamicContractConstructor` // Creates a subclass of the Contract with dynamically generated methods
+  based on the functions defined in the provided ABI.
+- `static createAutoInstance(
+  abi: Interface | InterfaceAbi,
+  address?: string,
+  driver?: Provider | Signer,
+  options?: ContractOptions
+): DynamicContract` // Instantiates a DynamicContract with methods automatically generated
+  from the provided ABI.
+
+- `call<T = unknown>(methodName: string, args?: any[], options?: CallOptions): Promise<T>` // Performs a single on-chain call for the contract.
+  Throws an error if unable to execute.
+- `getCall(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall` // Creates a `ContractCall` for `MulticallUnit`.
+  Throws an error if unable to create. You can do force replacement with a `callData` parameter.
 - `listenEvent(eventName: string, listener: Listener): Promise<Contract>` // Creates event listener on the contract. WebsocketProvider is required.
-- `getLogs(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): Promise<Log[]>` // Synchronous log retrieval. 'fromBlocks' can have a minus sign, which means 'n blocks ago'.
+- `getLogs(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): Promise<Log[]>` // Synchronous log retrieval.
+  'fromBlocks' can have a minus sign, which means 'n blocks ago'.
 - `getLogsStream(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): AsyncGenerator<Log, void, unknown>` // Asynchronous way to getting logs.
 
 #### ContractOptions

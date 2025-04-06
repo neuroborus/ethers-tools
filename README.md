@@ -305,6 +305,8 @@ constructor(
 - `getArrayOrThrow<T>(tags: MulticallTags, deep?: boolean): T` // The same but throws an error if not found.
 - `getObject<T>(tags: MulticallTags, deep?: boolean): T | undefined` // Get object as result. Works with named fields in ABI.
 - `getObjectOrThrow<T>(tags: MulticallTags, deep?: boolean): T` // The same but throws an error if not found.
+- `waitFor<T>(tags: MulticallTags, options?: MulticallWaitForOptions): Promise<T>` // Waiting for the call result.
+- `waitForOrThrow<T>(tags: MulticallTags, options?: MulticallWaitForOptions): Promise<T>` // Like waitFor(), but throws if result is not found.
 - `getRaw(tags: MulticallTags): string | TransactionResponse | TransactionReceipt | undefined` // Get the raw multicall result. Returns TransactionResponse if a mutable call has been processed. Returns TransactionReceipt if the `waitForTxs` flag was turned on.
 - `isSuccess(tags: MulticallTags): boolean | undefined` // Check if call finished successfully.
 - `clear(): void` // Completely clears the Unit for reuse.

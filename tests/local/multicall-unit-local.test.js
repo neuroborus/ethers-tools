@@ -308,4 +308,33 @@ describe('MulticallUnit - Local Test', () => {
     expect(first).to.be.eq(32n);
     expect(result).to.be.true;
   });
+
+  test('using waitFor', async () => {
+    const unit = new MulticallUnit(
+      WALLET,
+      {
+        maxStaticCallsStack: 2,
+      },
+      MULTICALL_ADDRESS
+    );
+
+    const instance = new SimpleStorageAutoClass();
+
+    unit.add(instance.getSetFirstCall([40]), 0);
+    unit.add(instance.getSetSecondCall([41]), 1);
+    unit.add(instance.getBothCall(), 2);
+    unit.add(instance.getFirstCall(), 'first');
+
+    const [first, result] = await Promise.all([
+      unit.waitFor('first'),
+      unit.run(),
+    ]);
+
+    const both = unit.get(2);
+
+    expect(both['first']).to.be.eq(40n);
+    expect(both['second']).to.be.eq(41n);
+    expect(first).to.be.eq(40n);
+    expect(result).to.be.true;
+  });
 });

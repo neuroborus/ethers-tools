@@ -4,10 +4,15 @@ If you want to run local tests, you will need a few items:
 
 ## Quickstart
 
+- `cd ./tests/local`
+
 ### Foundry & anvil
 
-- Installed [Foundry](https://book.getfoundry.sh/getting-started/installation)
-- Start anvil: `anvil --state ./anvil-data --block-time 3` - you will use locally saved chain state
+- Installed [Foundry](https://book.getfoundry.sh/getting-started/installation)  
+   Start anvil:
+
+- `cp ./anvil-data ./anvil-data-tmp`
+- `anvil --state ./anvil-data-tmp --block-time 3` - you will use locally saved chain state
 
 ## Manual deployment
 

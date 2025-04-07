@@ -1,4 +1,5 @@
 import { TransactionReceipt } from 'ethers';
+import { EventEmitter } from 'node:events';
 import { Multicall3Abi } from '../abis/index.js';
 import { CallMutability } from '../entities/index.js';
 import { config } from '../config.js';
@@ -7,11 +8,13 @@ import { MULTICALL_ERRORS } from '../errors/index.js';
 import { Contract } from '../contract/index.js';
 import {
   checkSignals,
+  createTimeoutSignal,
   raceWithSignals,
   waitWithSignals,
 } from '../utils/index.js';
 import { multicallGenerateTag } from './multicall-generate-tag.js';
 import { multicallNormalizeTags } from './multicall-normalize-tags.js';
+import { multicallResultEventName } from './multicall-result-event-name.js';
 import { multicallSplitCalls } from './multicall-split-calls.js';
 
 const aggregate3 = 'aggregate3';
@@ -49,6 +52,13 @@ export class MulticallUnit extends Contract {
    * @type {Map<import('../../types/entities').Tagable, boolean>}
    */
   _callsSuccess = new Map();
+  /**
+   * Inner events emitter.
+   * @protected
+   * @readonly
+   * @type {EventEmitter}
+   */
+  _emitter = new EventEmitter();
   /**
    * Last overall success status of multicall execution.
    * @protected
@@ -383,6 +393,66 @@ export class MulticallUnit extends Contract {
   }
 
   /**
+   * Waiting for the call result.
+   * @template T
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {import('../../types/entities').MulticallWaitForOptions} [options]
+   * @returns {Promise<T>}
+   */
+  waitFor(tags, options) {
+    const signals = options?.signals ?? [];
+    if (options?.timeoutMs)
+      signals.push(createTimeoutSignal(options.timeoutMs));
+
+    const nTags = multicallNormalizeTags(tags);
+
+    // 1. If result exists - just return
+    if (this._rawData.has(nTags)) {
+      const result = this.get(nTags, options?.deep);
+      return Promise.resolve(result);
+    }
+
+    // 2. Or wait for event
+    return raceWithSignals(
+      () =>
+        new Promise((resolve, reject) => {
+          const eventName = multicallResultEventName(nTags);
+
+          const onResult = () => {
+            cleanup();
+            try {
+              resolve(this.get(nTags, options?.deep));
+            } catch (e) {
+              reject(e);
+            }
+          };
+
+          const cleanup = () => {
+            this._emitter.removeListener(eventName, onResult);
+          };
+
+          this._emitter.once(eventName, onResult);
+        }),
+      signals
+    );
+  }
+
+  /**
+   * Waiting for the call result and throw or not found.
+   * @template T
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {import('../../types/entities').MulticallWaitForOptions} [options]
+   * @returns {Promise<T>}
+   */
+  async waitForOrThrow(tags, options) {
+    const result = await this.waitFor(tags, options);
+    if (result === null) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
+    return result;
+  }
+
+  /**
    * Executes all added calls in batches, depending on their mutability.
    * Fills internal response state, handles signal support and batch limits.
    * @public
@@ -553,6 +623,7 @@ export class MulticallUnit extends Contract {
       this._rawData.set(tag, data);
       this._callsSuccess.set(tag, success);
       this._response[globalIndex] = el;
+      this._emitter.emit(multicallResultEventName(tag));
     });
   }
 }

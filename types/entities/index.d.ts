@@ -7,5 +7,6 @@ export * from './contract-call';
 export * from './contract-call-options';
 export * from './multicall-tags';
 export * from './multicall-options';
+export * from './multicall-wait-for-options';
 export * from './multicall-associated-call';
 export * from './chain';

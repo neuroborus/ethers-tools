@@ -4,10 +4,12 @@ import {
   TransactionReceipt,
   TransactionResponse,
 } from 'ethers';
+import { EventEmitter } from 'node:events';
 import {
   ContractCall,
   MulticallOptions,
   MulticallTags,
+  MulticallWaitForOptions,
   Tagable,
 } from '../entities';
 import { MulticallAssociatedCall } from '../entities';
@@ -37,6 +39,10 @@ export declare class MulticallUnit extends Contract {
    * Stores success status for each call tag.
    */
   protected readonly _callsSuccess: Map<MulticallTags, boolean>;
+  /**
+   * Inner events emitter.
+   */
+  protected readonly _emitter: EventEmitter;
   /**
    * Last overall success status of multicall execution.
    */
@@ -154,6 +160,21 @@ export declare class MulticallUnit extends Contract {
    * Like getObject(), but throws if result is not found.
    */
   public getObjectOrThrow<T>(tags: MulticallTags, deep?: boolean): T;
+
+  /**
+   * Waiting for the call result.
+   */
+  public waitFor<T>(
+    tags: MulticallTags,
+    options?: MulticallWaitForOptions
+  ): Promise<T>;
+  /**
+   * Like waitFor(), but throws if result is not found.
+   */
+  public waitForOrThrow<T>(
+    tags: MulticallTags,
+    options?: MulticallWaitForOptions
+  ): Promise<T>;
 
   /**
    * Executes all added calls in batches, depending on their mutability.

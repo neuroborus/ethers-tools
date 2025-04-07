@@ -12,10 +12,10 @@ import {
 import { contractCreateCallName } from './contract-create-call-name.js';
 
 /**
- * Base wrapper around ethers.js Contract with built-in ContractCall (multicall) support,
+ * Base wrapper around ethers.js BaseContract with built-in ContractCall (multicall) support,
  * signal-based timeouts/aborts, dynamic mutability detection, and event/log streaming.
  */
-export class Contract {
+export class BaseContract {
   /**
    * Creates a subclass of this contract class where all ABI methods are automatically added
    * as instance methods (e.g., `contract.balanceOf(...)`) and corresponding call object getters
@@ -28,7 +28,7 @@ export class Contract {
    * @param {string} [address] - Optional deployed contract address.
    * @param {import('ethers').Provider | import('ethers').Signer} [driver] - Optional provider or signer.
    * @param {import('../../types/entities').ContractOptions} [options] - Optional contract options.
-   * @returns {import('../../types/contract').DynamicContractConstructor} A class constructor extending `Contract` with dynamic methods.
+   * @returns {import('../../types/contract').DynamicContractConstructor} A class constructor extending `BaseContract` with dynamic methods.
    */
   static createAutoClass(abi, address, driver, options) {
     const Base = this;
@@ -74,7 +74,7 @@ export class Contract {
    * Creates an instance of an auto-wrapped contract with dynamic ABI methods
    * and `get<MethodName>Call()` getters added at runtime.
    *
-   * Equivalent to: `new Contract.createAutoClass(...)()`
+   * Equivalent to: `new BaseContract.createAutoClass(...)()`
    *
    * @param {import('ethers').Interface | import('ethers').InterfaceAbi} abi - The contract ABI.
    * @param {string} [address] - Optional deployed contract address.
@@ -88,7 +88,7 @@ export class Contract {
   }
 
   /**
-   * Contract address.
+   * BaseContract address.
    * @readonly
    * @public
    * @type {string}
@@ -109,7 +109,7 @@ export class Contract {
    */
   readonly;
   /**
-   * Internal ethers.js Contract instance.
+   * Internal ethers.js BaseContract instance.
    * @readonly
    * @public
    * @type {EthersContract}
@@ -169,13 +169,12 @@ export class Contract {
    * @returns {import('ethers').Signer | undefined}
    */
   get signer() {
-    if (this._driver && typeof this._driver.getAddress === 'function')
-      return this._driver;
+    if (isSigner(this._driver)) return this._driver;
     return undefined;
   }
 
   /**
-   * Contract interface (ABI parser).
+   * BaseContract interface (ABI parser).
    * @public
    * @returns {import('ethers').Interface}
    */
@@ -188,20 +187,19 @@ export class Contract {
    * Automatically handles static calls vs. mutations and supports signal-based timeouts/aborts.
    * @template T
    * @public
-   * @param {string} methodName
+   * @param {string} method
    * @param {any[]} [args=[]]
    * @param {import('../../types/entities').ContractCallOptions} [options={}]
    * @returns {T}
    */
-  async call(methodName, args = [], options = {}) {
+  async call(method, args = [], options = {}) {
     if (!this.callable) throw CONTRACTS_ERRORS.NON_CALLABLE_CONTRACT_INVOCATION;
-    const method = this.contract[methodName];
+    const methodFn = this.contract[method];
 
-    if (!method) throw CONTRACTS_ERRORS.METHOD_NOT_DEFINED(methodName);
+    if (!methodFn) throw CONTRACTS_ERRORS.METHOD_NOT_DEFINED(method);
 
-    const functionFragment = this.contract.interface.getFunction(methodName);
-    if (!functionFragment)
-      throw CONTRACTS_ERRORS.FRAGMENT_NOT_DEFINED(methodName);
+    const functionFragment = this.contract.interface.getFunction(method);
+    if (!functionFragment) throw CONTRACTS_ERRORS.FRAGMENT_NOT_DEFINED(method);
 
     const callOptions = {
       forceMutability: this._contractOptions.forceMutability,
@@ -222,7 +220,7 @@ export class Contract {
       );
 
     if (isStatic) {
-      return raceWithSignals(() => method.staticCall(...args), localSignals);
+      return raceWithSignals(() => methodFn.staticCall(...args), localSignals);
     } else {
       if (this.readonly) throw CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION;
       let tx;
@@ -230,21 +228,14 @@ export class Contract {
         const provider = this._driver.provider;
         tx = await raceWithSignals(
           () =>
-            priorityCall(
-              provider,
-              this._driver,
-              this.contract,
-              methodName,
-              args,
-              {
-                signals: localSignals,
-                ...options.priorityOptions,
-              }
-            ),
+            priorityCall(provider, this._driver, this.contract, method, args, {
+              signals: localSignals,
+              ...options.priorityOptions,
+            }),
           localSignals
         );
       } else {
-        tx = await raceWithSignals(() => method(...args), localSignals);
+        tx = await raceWithSignals(() => methodFn(...args), localSignals);
       }
       return tx;
     }

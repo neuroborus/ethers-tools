@@ -4,7 +4,7 @@ import {
   RegistryAutoInstance,
   RegistryContract,
   WSS_PROVIDER,
-} from '../stub.js';
+} from '../mock.js';
 
 // Instantiate the registry contract with the WebSocket provider
 export const registry = new RegistryContract(WSS_PROVIDER);

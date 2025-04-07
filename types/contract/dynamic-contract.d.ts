@@ -1,4 +1,4 @@
-import { Contract } from './contract';
+import { BaseContract } from './base-contract';
 import { ContractAutoMethods } from './contract-auto-methods';
 
-export type DynamicContract = Contract & ContractAutoMethods;
+export type DynamicContract = BaseContract & ContractAutoMethods;

@@ -17,12 +17,12 @@ import { DynamicContract } from './dynamic-contract';
 import { DynamicContractConstructor } from './dynamic-contract-constructor';
 
 /**
- * Base wrapper around ethers.js Contract with built-in ContractCall (multicall) support,
+ * Base wrapper around ethers.js BaseContract with built-in ContractCall (multicall) support,
  * signal-based timeouts/aborts, dynamic mutability detection, and event/log streaming.
  */
-export declare class Contract {
+export declare class BaseContract {
   /**
-   * Creates a subclass of the base `Contract` class, where all ABI-defined methods
+   * Creates a subclass of the base `BaseContract` class, where all ABI-defined methods
    * are automatically added as instance methods and `get<MethodName>Call()` accessors
    * for use in multicall contexts.
    *
@@ -36,7 +36,7 @@ export declare class Contract {
    * @param address - Deployed contract address (optional).
    * @param driver - Ethers provider or signer (optional).
    * @param options - Additional contract options (timeouts, mutability, etc.).
-   * @returns A dynamically generated class that extends the base `Contract` class with ABI methods.
+   * @returns A dynamically generated class that extends the base `BaseContract` class with ABI methods.
    */
   static createAutoClass(
     abi: Interface | InterfaceAbi,
@@ -50,7 +50,7 @@ export declare class Contract {
    *
    * This is a convenience method equivalent to:
    * ```ts
-   * const DynamicClass = Contract.createAutoClass(...);
+   * const DynamicClass = BaseContract.createAutoClass(...);
    * const instance = new DynamicClass();
    * ```
    *
@@ -70,7 +70,7 @@ export declare class Contract {
   ): DynamicContract;
 
   /**
-   * Contract address.
+   * BaseContract address.
    */
   public readonly address: string;
   /**
@@ -82,7 +82,7 @@ export declare class Contract {
    */
   public readonly readonly: boolean;
   /**
-   * Internal ethers.js Contract instance.
+   * Internal ethers.js BaseContract instance.
    */
   public readonly contract: EthersContract;
   protected readonly _driver?: Provider | Signer;
@@ -104,7 +104,7 @@ export declare class Contract {
    */
   get signer(): Signer | undefined;
   /**
-   * Contract interface (ABI parser).
+   * BaseContract interface (ABI parser).
    */
   get interface(): Interface;
 
@@ -113,7 +113,7 @@ export declare class Contract {
    * Automatically handles static calls vs. mutations and supports signal-based timeouts/aborts.
    */
   call<T = unknown>(
-    methodName: string,
+    method: string,
     args?: any[],
     options?: ContractCallOptions
   ): Promise<T>;
@@ -129,7 +129,7 @@ export declare class Contract {
   /**
    * Subscribes to an on-chain event using a WebSocket provider.
    */
-  listenEvent(eventName: string, listener: Listener): Promise<Contract>;
+  listenEvent(eventName: string, listener: Listener): Promise<BaseContract>;
   /**
    * Fetches and decodes logs for given events between specified blocks
    * (or N blocks ago - as first arg);

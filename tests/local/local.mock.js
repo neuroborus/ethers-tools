@@ -1,5 +1,5 @@
-import { ethers } from 'ethers';
-import { Contract } from '../../src/index.js';
+import { Contract, ethers } from 'ethers';
+import { BaseContract, MulticallProvider } from '../../src/index.js';
 import StorageAbi from './simple-storage.abi.json';
 
 export const MULTICALL_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
@@ -8,12 +8,26 @@ export const SIMPLE_STORAGE_ADDRESS =
 
 export const RPC_URL = 'ws://127.0.0.1:8545';
 export const PROVIDER = new ethers.WebSocketProvider(RPC_URL);
+export const MULTICALL_PROVIDER = new MulticallProvider(
+  PROVIDER,
+  undefined,
+  MULTICALL_ADDRESS
+);
 export const WALLET = new ethers.Wallet(
   '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
   PROVIDER
 );
+export const ETHERS_MULTICALL_DRIVER = new ethers.Wallet(
+  '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+  MULTICALL_PROVIDER
+);
+export const ETHERS_MULTICALL_CONTRACT = new Contract(
+  SIMPLE_STORAGE_ADDRESS,
+  StorageAbi,
+  ETHERS_MULTICALL_DRIVER
+);
 
-export class SimpleStorage extends Contract {
+export class SimpleStorage extends BaseContract {
   constructor(driver) {
     super(StorageAbi, SIMPLE_STORAGE_ADDRESS, driver);
   }
@@ -68,12 +82,12 @@ export class AsyncAbortController extends AbortController {
   }
 }
 
-export const SimpleStorageAutoInstance = Contract.createAutoInstance(
+export const SimpleStorageAutoInstance = BaseContract.createAutoInstance(
   StorageAbi,
   SIMPLE_STORAGE_ADDRESS,
   WALLET
 );
-export const SimpleStorageAutoClass = Contract.createAutoClass(
+export const SimpleStorageAutoClass = BaseContract.createAutoClass(
   StorageAbi,
   SIMPLE_STORAGE_ADDRESS,
   WALLET

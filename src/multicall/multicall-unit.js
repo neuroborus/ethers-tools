@@ -3,15 +3,16 @@ import { EventEmitter } from 'node:events';
 import { Multicall3Abi } from '../abis/index.js';
 import { CallMutability } from '../entities/index.js';
 import { config } from '../config.js';
-import { isStaticArray } from '../helpers/index.js';
+import { isParsable, isStaticArray } from '../helpers/index.js';
 import { MULTICALL_ERRORS } from '../errors/index.js';
-import { Contract } from '../contract/index.js';
+import { BaseContract } from '../contract/index.js';
 import {
   checkSignals,
   createTimeoutSignal,
   raceWithSignals,
   waitWithSignals,
 } from '../utils/index.js';
+import { multicallErrorEventName } from './multicall-error-event-name.js';
 import { multicallGenerateTag } from './multicall-generate-tag.js';
 import { multicallNormalizeTags } from './multicall-normalize-tags.js';
 import { multicallResultEventName } from './multicall-result-event-name.js';
@@ -20,15 +21,14 @@ import { multicallSplitCalls } from './multicall-split-calls.js';
 const aggregate3 = 'aggregate3';
 
 /**
- * MulticallUnit extends the Contract class to support batching multiple contract calls
+ * MulticallUnit extends the BaseContract class to support batching multiple contract calls
  * into a single transaction or RPC call using the Multicall3 standard.
  * It supports static and mutable calls, result tagging, and decoding.
  */
-export class MulticallUnit extends Contract {
+export class MulticallUnit extends BaseContract {
   /**
    * Stores tagged contract calls.
    * @protected
-   * @readonly
    * @type {Map<import('../../types/entities').Tagable, ContractCall>}
    */
   _units = new Map();
@@ -40,15 +40,27 @@ export class MulticallUnit extends Contract {
   _response = [];
   /**
    * Stores raw data from each tagged result.
-   * @protected
-   * @readonly
+   * @Protected
    * @type {Map<import('../../types/entities').Tagable, string>}
    */
   _rawData = new Map();
   /**
-   * Stores success status for each call tag.
+   * Stores TransactionResponse for each mutable call.
    * @protected
    * @readonly
+   * @type {Map<import('../../types/entities').Tagable, import('ethers').TransactionResponse>}
+   */
+  _txResponses = new Map();
+  /**
+   * Stores TransactionReceipt for each mutable call.
+   * @protected
+   * @readonly
+   * @type {Map<import('../../types/entities').Tagable, import('ethers').TransactionReceipt>}
+   */
+  _txReceipts = new Map();
+  /**
+   * Stores success status for each call tag.
+   * @protected
    * @type {Map<import('../../types/entities').Tagable, boolean>}
    */
   _callsSuccess = new Map();
@@ -194,15 +206,6 @@ export class MulticallUnit extends Contract {
   isSuccess(tags) {
     return this._callsSuccess.get(multicallNormalizeTags(tags));
   }
-  /**
-   * Returns raw result data for a specific tag.
-   * @public
-   * @param {import('../../types/entities').MulticallTags} tags
-   * @returns {string | import('ethers').TransactionResponse | import('ethers').TransactionReceipt | undefined}
-   */
-  getRaw(tags) {
-    return this._rawData.get(multicallNormalizeTags(tags));
-  }
 
   /**
    * @private
@@ -214,9 +217,9 @@ export class MulticallUnit extends Contract {
     const rawData = this._rawData.get(nTags);
     const call = this._units.get(nTags);
     if (
-      !rawData ||
-      typeof rawData !== 'string' || // rawData should be a string if it contains decodable data
+      rawData === undefined ||
       !call ||
+      !isParsable(call) ||
       !this.isSuccess(nTags)
     )
       return null;
@@ -242,8 +245,8 @@ export class MulticallUnit extends Contract {
   get(tags, deep = false) {
     {
       const raw = this.getRaw(tags);
-      if (!raw) return null;
-      if (typeof raw !== 'string') return raw; // Transaction or Receipt for mutable call
+      if (raw === null) return null;
+      // if (typeof raw !== 'string') return raw; // Transaction or Receipt for mutable call
     }
 
     const data = this._getDecodableData(tags);
@@ -360,7 +363,6 @@ export class MulticallUnit extends Contract {
     if (array === null) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
     return array;
   }
-
   /**
    * Returns decoded result - tuple as an object.
    * @template T
@@ -384,58 +386,233 @@ export class MulticallUnit extends Contract {
    * @template T
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
+   * @param {boolean} [deep=false]
    * @returns {T}
    */
-  getObjectOrThrow(tags) {
-    const obj = this.getObject(tags);
+  getObjectOrThrow(tags, deep) {
+    const obj = this.getObject(tags, deep);
     if (obj === null) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
     return obj;
   }
-
   /**
-   * Waiting for the call result.
-   * @template T
+   * Returns raw result data for a specific tag.
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
-   * @param {import('../../types/entities').MulticallWaitForOptions} [options]
-   * @returns {Promise<T>}
+   * @returns {string | null}
    */
-  waitFor(tags, options) {
+  getRaw(tags) {
+    return this._rawData.get(multicallNormalizeTags(tags)) ?? null;
+  }
+  /**
+   * Returns raw result data for a specific tag.
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @returns {string | import('ethers').TransactionResponse | import('ethers').TransactionReceipt | undefined}
+   */
+  getRawOrThrow(tags) {
+    const raw = this.getRaw(tags);
+    if (raw === null) return null;
+    return raw;
+  }
+  /**
+   * Returns TransactionResponse for the mutable call.
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @returns {import('ethers').TransactionResponse | null}
+   */
+  getTxResponse(tags) {
+    return this._txResponses.get(multicallNormalizeTags(tags)) ?? null;
+  }
+  /**
+   * Returns TransactionResponse for the mutable call or throws.
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @returns {import('ethers').TransactionResponse}
+   */
+  getTxResponseOrThrow(tags) {
+    const response = this.getTxResponse(tags);
+    if (response === null) throw MULTICALL_ERRORS.RESPONSE_NOT_FOUND;
+    return response;
+  }
+  /**
+   * Returns TransactionReceipt for the mutable call.
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @returns {import('ethers').TransactionReceipt | null}
+   */
+  getTxReceipt(tags) {
+    return this._txReceipts.get(multicallNormalizeTags(tags)) ?? null;
+  }
+  /**
+   * Returns TransactionReceipt for the mutable call or throws.
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @returns {import('ethers').TransactionReceipt}
+   */
+  getTxReceiptOrThrow(tags) {
+    const receipt = this._txReceipts.get(multicallNormalizeTags(tags)) ?? null;
+    if (receipt === null) throw MULTICALL_ERRORS.RECEIPT_NOT_FOUND;
+    return receipt;
+  }
+
+  /**
+   * Waiting for the specific call end.
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {import('../../types/entities').MulticallWaitOptions} [options]
+   * @returns {Promise<void>}
+   */
+  wait(tags, options) {
     const signals = options?.signals ?? [];
     if (options?.timeoutMs)
       signals.push(createTimeoutSignal(options.timeoutMs));
 
     const nTags = multicallNormalizeTags(tags);
-
-    // 1. If result exists - just return
-    if (this._rawData.has(nTags)) {
-      const result = this.get(nTags, options?.deep);
-      return Promise.resolve(result);
-    }
-
-    // 2. Or wait for event
     return raceWithSignals(
       () =>
         new Promise((resolve, reject) => {
-          const eventName = multicallResultEventName(nTags);
+          const resultEvent = multicallResultEventName(nTags);
+          const errorEvent = multicallErrorEventName(nTags);
 
           const onResult = () => {
             cleanup();
-            try {
-              resolve(this.get(nTags, options?.deep));
-            } catch (e) {
-              reject(e);
-            }
+            resolve();
+          };
+          const onError = (error) => {
+            cleanup();
+            reject(error);
           };
 
           const cleanup = () => {
-            this._emitter.removeListener(eventName, onResult);
+            this._emitter.removeListener(resultEvent, onResult);
+            this._emitter.removeListener(errorEvent, onError);
           };
 
-          this._emitter.once(eventName, onResult);
+          this._emitter.once(resultEvent, onResult);
+          this._emitter.once(errorEvent, onError);
         }),
       signals
     );
+  }
+  /**
+   * Waiting for the specific call.
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {import('../../types/entities').MulticallWaitOptions} [options]
+   * @returns {Promise<string | null>}
+   */
+  async waitRaw(tags, options) {
+    const nTags = multicallNormalizeTags(tags);
+    // 1. If result exists - just return
+    {
+      const result = this._rawData.get(nTags);
+      if (result) return result;
+    }
+    if (this._txResponses.has(nTags)) {
+      return null;
+    }
+
+    // 2. Or wait for event
+    await this.wait(tags, options);
+    return this.getRaw(nTags);
+  }
+
+  /**
+   * Waiting for the specific call.
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {import('../../types/entities').MulticallWaitOptions} [options]
+   * @returns {Promise<string>}
+   */
+  async waitRawOrThrow(tags, options) {
+    const raw = await this.waitRaw(tags, options);
+    if (raw === null) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
+    return raw;
+  }
+
+  /**
+   * Waiting for the specific TransactionResponse.
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {import('../../types/entities').MulticallWaitOptions} [options]
+   * @returns {Promise<import('ethers').TransactionResponse | null>}
+   */
+  async waitTx(tags, options) {
+    const nTags = multicallNormalizeTags(tags);
+    // 1. If result exists - just return
+    {
+      const result = this._txResponses.get(nTags);
+      if (result) return result;
+    }
+    if (this._rawData.has(nTags)) {
+      return null;
+    }
+
+    // 2. Or wait for event
+    await this.wait(tags, options);
+    return this.getTxResponse(nTags);
+  }
+  /**
+   * Waiting for the specific TransactionResponse or throws.
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {import('../../types/entities').MulticallWaitOptions} [options]
+   * @returns {Promise<import('ethers').TransactionResponse>}
+   */
+  async waitTxOrThrow(tags, options) {
+    const tx = await this.waitTx(tags, options);
+    if (tx === null) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
+    return tx;
+  }
+  /**
+   * Waiting for the specific TransactionReceipt.
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {import('../../types/entities').MulticallWaitOptions} [options]
+   * @returns {Promise<import('ethers').TransactionReceipt | null>}
+   */
+  async waitReceipt(tags, options) {
+    const nTags = multicallNormalizeTags(tags);
+    // 1. If result exists - just return
+    {
+      const result = this._txReceipts.get(nTags);
+      if (result) return result;
+    }
+    if (this._rawData.has(nTags)) {
+      return null;
+    }
+
+    // 2. Or wait for event
+    await this.wait(tags, options);
+    return this.getTxReceipt(nTags);
+  }
+  /**
+   * Waiting for the specific TransactionReceipt or throws.
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {import('../../types/entities').MulticallWaitOptions} [options]
+   * @returns {Promise<import('ethers').TransactionReceipt>}
+   */
+  async waitReceiptOrThrow(tags, options) {
+    const receipt = await this.waitReceipt(tags, options);
+    if (receipt === null) throw MULTICALL_ERRORS.RESULT_NOT_FOUND;
+    return receipt;
+  }
+  /**
+   * Waiting for the call result.
+   * @template T
+   * @public
+   * @param {import('../../types/entities').MulticallTags} tags
+   * @param {import('../../types/entities').MulticallWaitOptions} [options]
+   * @returns {Promise<T>}
+   */
+  async waitFor(tags, options) {
+    const nTags = multicallNormalizeTags(tags);
+    if (this._rawData.has(nTags)) {
+      return this.get(tags, options?.deep);
+    }
+    await this.wait(tags, options);
+    return this.get(tags, options?.deep);
   }
 
   /**
@@ -443,7 +620,7 @@ export class MulticallUnit extends Contract {
    * @template T
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
-   * @param {import('../../types/entities').MulticallWaitForOptions} [options]
+   * @param {import('../../types/entities').MulticallWaitOptions} [options]
    * @returns {Promise<T>}
    */
   async waitForOrThrow(tags, options) {
@@ -466,18 +643,20 @@ export class MulticallUnit extends Contract {
     };
 
     if (this._isExecuting) throw MULTICALL_ERRORS.SIMULTANEOUS_INVOCATIONS;
-    try {
-      this._isExecuting = true;
-      this._lastSuccess = undefined;
-      const tags = this.tags;
-      const calls = this.calls;
-      this._response = Array(tags.length).fill([undefined, null]);
 
+    this._isExecuting = true;
+    this._lastSuccess = undefined;
+    const tags = this.tags;
+    const calls = this.calls;
+    this._response = Array(tags.length).fill([undefined, null]);
+
+    try {
       checkSignals(runOptions.signals);
 
       let staticCalls;
       let staticIndexes;
       let mutableCalls;
+      let mutableTags;
       let mutableIndexes;
 
       if (runOptions.forceMutability) {
@@ -485,18 +664,21 @@ export class MulticallUnit extends Contract {
           staticCalls = calls;
           staticIndexes = Array.from({ length: calls.length }, (_, i) => i);
           mutableCalls = [];
+          mutableTags = [];
           mutableIndexes = [];
         } else {
           staticCalls = [];
           staticIndexes = [];
           mutableCalls = calls;
+          mutableTags = tags;
           mutableIndexes = Array.from({ length: calls.length }, (_, i) => i);
         }
       } else {
-        const split = multicallSplitCalls(calls);
+        const split = multicallSplitCalls(calls, tags);
         staticCalls = split.staticCalls;
         staticIndexes = split.staticIndexes;
         mutableCalls = split.mutableCalls;
+        mutableTags = split.mutableTags;
         mutableIndexes = split.mutableIndexes;
       }
 
@@ -513,10 +695,12 @@ export class MulticallUnit extends Contract {
           mutableCalls.length
         );
         const iterationCalls = mutableCalls.slice(i, border); // half-opened interval
+        const iterationTags = mutableTags.slice(i, border);
         const iterationIndexes = mutableIndexes.slice(i, border); // half-opened interval
 
         const iterationResponse = await this._processMutableCalls(
           iterationCalls,
+          iterationTags,
           runOptions
         );
 
@@ -549,6 +733,9 @@ export class MulticallUnit extends Contract {
       }
     } catch (error) {
       this._lastSuccess = false;
+      tags.forEach((tag) =>
+        this._emitter.emit(multicallErrorEventName(tag), error)
+      ); // For unlock all the waiters
       throw error;
     } finally {
       this._isExecuting = false;
@@ -576,10 +763,11 @@ export class MulticallUnit extends Contract {
   /**
    * @private
    * @param {import('../../types/entities').ContractCall[]} iterationCalls
+   * @param {import('../../types/entities').Tagable[]} iterationTags
    * @param {import('../../types/entities').MulticallOptions} runOptions
    * @returns {Promise<import('../../types/multicall').MulticallResponse[]>}
    */
-  async _processMutableCalls(iterationCalls, runOptions) {
+  async _processMutableCalls(iterationCalls, iterationTags, runOptions) {
     let result;
     const tx = await this.call(aggregate3, [iterationCalls], {
       forceMutability: CallMutability.Mutable,
@@ -588,6 +776,7 @@ export class MulticallUnit extends Contract {
       signals: runOptions.signals,
       timeoutMs: runOptions.mutableCallsTimeoutMs,
     });
+    iterationTags.forEach((tag) => this._txResponses.set(tag, tx));
     if (runOptions.waitForTxs) {
       const receipt = await raceWithSignals(
         () => tx.wait(),
@@ -599,6 +788,7 @@ export class MulticallUnit extends Contract {
       } else {
         result = Array(iterationCalls.length).fill([true, receipt]);
         this._lastSuccess = !(this._lastSuccess === false);
+        iterationTags.forEach((tag) => this._txReceipts.set(tag, receipt));
       }
     } else {
       result = Array(iterationCalls.length).fill([true, tx]);
@@ -620,7 +810,7 @@ export class MulticallUnit extends Contract {
       const globalIndex = iterationIndexes[index];
       const tag = globalTags[globalIndex]; // Normalized
       if (!success) this._lastSuccess = false;
-      this._rawData.set(tag, data);
+      if (typeof data === 'string') this._rawData.set(tag, data);
       this._callsSuccess.set(tag, success);
       this._response[globalIndex] = el;
       this._emitter.emit(multicallResultEventName(tag));

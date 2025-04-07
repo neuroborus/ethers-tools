@@ -9,24 +9,24 @@ import {
   ContractCall,
   MulticallOptions,
   MulticallTags,
-  MulticallWaitForOptions,
+  MulticallWaitOptions,
   Tagable,
 } from '../entities';
 import { MulticallAssociatedCall } from '../entities';
-import { Contract } from '../contract';
+import { BaseContract } from '../contract';
 import { MulticallDecodableData } from './multicall-decodable-data';
 import { MulticallResponse } from './multicall-response';
 
 /**
- * MulticallUnit extends the Contract class to support batching multiple contract calls
+ * MulticallUnit extends the BaseContract class to support batching multiple contract calls
  * into a single transaction or RPC call using the Multicall3 standard.
  * It supports static and mutable calls, result tagging, and decoding.
  */
-export declare class MulticallUnit extends Contract {
+export declare class MulticallUnit extends BaseContract {
   /**
    * Stores tagged contract calls.
    */
-  protected readonly _units: Map<MulticallTags, ContractCall>;
+  protected _units: Map<Tagable, ContractCall>;
   /**
    * Stores raw responses from multicall (success flags and data).
    */
@@ -34,11 +34,19 @@ export declare class MulticallUnit extends Contract {
   /**
    * Stores raw data from each tagged result.
    */
-  protected readonly _rawData: Map<MulticallTags, string>;
+  protected _rawData: Map<Tagable, string>;
+  /**
+   * Stores TransactionResponse for each mutable call.
+   */
+  protected readonly _txResponses: Map<Tagable, TransactionResponse>;
+  /**
+   * Stores TransactionReceipt for each mutable call.
+   */
+  protected readonly _txReceipts: Map<Tagable, TransactionReceipt>;
   /**
    * Stores success status for each call tag.
    */
-  protected readonly _callsSuccess: Map<MulticallTags, boolean>;
+  protected _callsSuccess: Map<Tagable, boolean>;
   /**
    * Inner events emitter.
    */
@@ -105,12 +113,23 @@ export declare class MulticallUnit extends Contract {
    * Returns success status for a specific tag.
    */
   public isSuccess(tags: MulticallTags): boolean | undefined;
+
   /**
-   * Returns raw result data for a specific tag.
+   * Returns TransactionResponse for the mutable call.
    */
-  public getRaw(
-    tags: MulticallTags
-  ): string | TransactionResponse | TransactionReceipt | undefined;
+  public getTxResponse(tags: MulticallTags): TransactionResponse | null;
+  /**
+   * Returns TransactionReceipt for the mutable call.
+   */
+  public getTxReceipt(tags: MulticallTags): TransactionReceipt | null;
+  /**
+   * Returns TransactionResponse for the mutable call or throws.
+   */
+  public getTxResponseOrThrow(tags: MulticallTags): TransactionResponse;
+  /**
+   * Returns TransactionReceipt for the mutable call or throws.
+   */
+  public getTxReceiptOrThrow(tags: MulticallTags): TransactionReceipt;
 
   private _getDecodableData(tags: MulticallTags): MulticallDecodableData | null;
 
@@ -160,20 +179,77 @@ export declare class MulticallUnit extends Contract {
    * Like getObject(), but throws if result is not found.
    */
   public getObjectOrThrow<T>(tags: MulticallTags, deep?: boolean): T;
+  /**
+   * Returns raw result data for a specific tag.
+   */
+  public getRaw(tags: MulticallTags): string | null;
+  /**
+   * Returns raw result data for a specific tag or throws if not found.
+   */
+  public getRawOrThrow(tags: MulticallTags): string;
 
   /**
-   * Waiting for the call result.
+   * Waiting for the specific call execution.
+   */
+  public wait(
+    tags: MulticallTags,
+    options?: MulticallWaitOptions
+  ): Promise<void>;
+  /**
+   * Waiting for the specific raw data.
+   */
+  public waitRaw(
+    tags: MulticallTags,
+    options?: MulticallWaitOptions
+  ): Promise<string | null>;
+  /**
+   * Waiting for the specific raw data. Throws if not found.
+   */
+  public waitRawOrThrow(
+    tags: MulticallTags,
+    options?: MulticallWaitOptions
+  ): Promise<string>;
+  /**
+   * Waiting for the specific TransactionResponse.
+   */
+  public waitTx(
+    tags: MulticallTags,
+    options?: MulticallWaitOptions
+  ): Promise<TransactionResponse | null>;
+  /**
+   * Waiting for the specific TransactionResponse. Throws if not found.
+   */
+  public waitTxOrThrow(
+    tags: MulticallTags,
+    options?: MulticallWaitOptions
+  ): Promise<TransactionResponse>;
+  /**
+   * Waiting for the specific TransactionReceipt.
+   */
+  public waitReceipt(
+    tags: MulticallTags,
+    options?: MulticallWaitOptions
+  ): Promise<TransactionReceipt | null>;
+  /**
+   * Waiting for the specific TransactionReceipt. Throws if not found.
+   */
+  public waitReceiptOrThrow(
+    tags: MulticallTags,
+    options?: MulticallWaitOptions
+  ): Promise<TransactionReceipt>;
+  /**
+   * Waiting for the parsed call result.
    */
   public waitFor<T>(
     tags: MulticallTags,
-    options?: MulticallWaitForOptions
+    options?: MulticallWaitOptions
   ): Promise<T>;
   /**
    * Like waitFor(), but throws if result is not found.
    */
   public waitForOrThrow<T>(
     tags: MulticallTags,
-    options?: MulticallWaitForOptions
+    options?: MulticallWaitOptions
   ): Promise<T>;
 
   /**
@@ -187,6 +263,7 @@ export declare class MulticallUnit extends Contract {
   ): Promise<MulticallResponse[]>;
   private _processMutableCalls(
     iterationCalls: ContractCall[],
+    iterationTags: Tagable[],
     runOptions: MulticallOptions
   ): Promise<MulticallResponse[]>;
   private _saveResponse(

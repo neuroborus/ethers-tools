@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { MulticallUnit } from '../../src';
-import { CometContract, JSON_PROVIDER, RegistryContract } from '../stub.js';
+import { CometContract, JSON_PROVIDER, RegistryContract } from '../mock.js';
 
 // Instantiate contracts with a JSON RPC provider
 export const registry = new RegistryContract(JSON_PROVIDER);

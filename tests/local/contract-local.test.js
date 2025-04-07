@@ -5,11 +5,11 @@ import {
   MULTICALL_ADDRESS,
   SimpleStorage,
   WALLET,
-} from './local.stub.js';
+} from './local.mock.js';
 
 const storage = new SimpleStorage(WALLET);
 
-describe('Local Contract Tests', () => {
+describe('Local BaseContract Tests', () => {
   test('listens to FirstChanged events emitted during multiple txs', async () => {
     await waitForAddressTxs(WALLET.address, WALLET.provider);
 

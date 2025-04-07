@@ -3,9 +3,10 @@ import { isStaticMethod } from '../helpers/index.js';
 /**
  * @public
  * @param {import('../../types/entities/index.js').ContractCall[]} calls
+ * @param {import('../../types/entities/index.js').Tagable[]} tags
  * @returns {import('../../types/entities/index.js').SplitCalls}
  */
-export const multicallSplitCalls = (calls) =>
+export const multicallSplitCalls = (calls, tags) =>
   calls.reduce(
     (acc, call, index) => {
       if (isStaticMethod(call.stateMutability)) {
@@ -13,6 +14,7 @@ export const multicallSplitCalls = (calls) =>
         acc.staticIndexes.push(index);
       } else {
         acc.mutableCalls.push(call);
+        acc.mutableTags.push(tags[index]);
         acc.mutableIndexes.push(index);
       }
       return acc;
@@ -21,6 +23,7 @@ export const multicallSplitCalls = (calls) =>
       staticCalls: [],
       staticIndexes: [],
       mutableCalls: [],
+      mutableTags: [],
       mutableIndexes: [],
     }
   );

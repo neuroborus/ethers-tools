@@ -8,7 +8,7 @@ import {
   SimpleStorageAutoClass,
   SimpleStorageAutoInstance,
   WALLET,
-} from './local.stub.js';
+} from './local.mock.js';
 
 const storage = new SimpleStorage(WALLET);
 
@@ -37,12 +37,12 @@ describe('MulticallUnit - Local Test', () => {
     for (let i = 0; i < 1; i++) {
       expect(unit.isSuccess([i])).to.be.true;
       expect(unit.isSuccess([i, i])).to.be.true;
-      expect(unit.getRaw([i])).toBeInstanceOf(TransactionResponse);
-      expect(unit.getRaw([i, i])).toBeInstanceOf(TransactionResponse);
+      expect(unit.getTxResponse([i])).toBeInstanceOf(TransactionResponse);
+      expect(unit.getTxResponse([i, i])).toBeInstanceOf(TransactionResponse);
     }
 
     // Wait manually after `waitForTxs: false`
-    const tx = unit.getRaw([0]);
+    const tx = unit.getTxResponseOrThrow([0]);
     await tx.wait();
   });
 
@@ -66,8 +66,8 @@ describe('MulticallUnit - Local Test', () => {
     for (let i = 0; i < 3; i++) {
       expect(unit.isSuccess([i])).to.be.true;
       expect(unit.isSuccess([i, i])).to.be.true;
-      expect(unit.getRaw([i])).toBeInstanceOf(TransactionReceipt);
-      expect(unit.getRaw([i, i])).toBeInstanceOf(TransactionReceipt);
+      expect(unit.getTxReceipt([i])).toBeInstanceOf(TransactionReceipt);
+      expect(unit.getTxReceipt([i, i])).toBeInstanceOf(TransactionReceipt);
     }
   });
 
@@ -94,8 +94,8 @@ describe('MulticallUnit - Local Test', () => {
     for (let i = 0; i < 3; i++) {
       expect(unit.isSuccess([i])).to.be.true;
       expect(unit.isSuccess([i, i])).to.be.true;
-      expect(unit.getRaw([i])).toBeInstanceOf(TransactionReceipt);
-      expect(unit.getRaw([i, i])).toBeInstanceOf(TransactionReceipt);
+      expect(unit.getTxReceipt([i])).toBeInstanceOf(TransactionReceipt);
+      expect(unit.getTxReceipt([i, i])).toBeInstanceOf(TransactionReceipt);
     }
 
     const uniqueTxs = new Set(unit.response);
@@ -133,8 +133,8 @@ describe('MulticallUnit - Local Test', () => {
 
     expect(unit.getSingle(1)).to.be.null;
     expect(unit.getSingle(2)).to.be.null;
-    expect(unit.getRaw(1)).to.be.instanceOf(TransactionReceipt);
-    expect(unit.getRaw(2)).to.be.instanceOf(TransactionReceipt);
+    expect(unit.getTxReceipt(1)).to.be.instanceOf(TransactionReceipt);
+    expect(unit.getTxReceipt(2)).to.be.instanceOf(TransactionReceipt);
   });
 
   test('reads static data successfully', async () => {

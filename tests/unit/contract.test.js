@@ -1,7 +1,7 @@
 import { JsonRpcProvider, Wallet } from 'ethers';
 import { describe, expect, test } from 'vitest';
 import { CONTRACTS_ERRORS } from '../../src/errors';
-import { JSON_PROVIDER, JSON_WALLET, RegistryContract } from '../stub.js';
+import { JSON_PROVIDER, JSON_WALLET, RegistryContract } from '../mock.js';
 
 const registryProvider = new RegistryContract(JSON_PROVIDER); // read-only instance
 const registryWallet = new RegistryContract(JSON_WALLET); // write-enabled instance

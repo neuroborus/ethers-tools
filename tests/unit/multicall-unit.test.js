@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { CONTRACTS_ERRORS, MULTICALL_ERRORS } from '../../src/errors/index.js';
 import { MulticallUnit } from '../../src/index.js';
-import { JSON_PROVIDER, RegistryContract } from '../stub.js';
+import { JSON_PROVIDER, RegistryContract } from '../mock.js';
 
 const registryProvider = new RegistryContract(JSON_PROVIDER);
 const multicallProvider = new MulticallUnit(JSON_PROVIDER);

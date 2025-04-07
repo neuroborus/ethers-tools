@@ -49,6 +49,6 @@ forge create --rpc-url http://127.0.0.1:8545   --private-key 0xac0974bec39a17e36
 
 ### Stub
 
-Update [local stub](local.stub.js) with the deployed contract addresses and private key used.
+Update [local stub](local.mock.js) with the deployed contract addresses and private key used.
 
 That's all!

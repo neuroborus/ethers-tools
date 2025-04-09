@@ -159,8 +159,7 @@ export class BaseContract {
    */
   get provider() {
     if (!this._driver) return undefined;
-    if (isSigner(this._driver)) return this._driver.provider;
-    return this._driver;
+    return this._driver.provider;
   }
 
   /**

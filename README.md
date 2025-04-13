@@ -49,7 +49,12 @@ const [first, second, both, writeCount, setFirstTx, setSecondTx] =
     contract['setFirst'](42),
   ]); // All calls for that event loop iteration will execute as a multicall batch.
 
-expect(first).to.be.eq(42n);
+/*
+ * Since transactions are managed by the Signer, unlike with a pure MulticallUnit, 
+ * view calls are typically executed before write transactions.
+ * */
+
+expect(typeof first).to.be.eq('bigint');
 ```
 
 #### MulticallUnit and BaseContract usage

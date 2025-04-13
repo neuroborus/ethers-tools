@@ -50,7 +50,7 @@ const [first, second, both, writeCount, setFirstTx, setSecondTx] =
   ]); // All calls for that event loop iteration will execute as a multicall batch.
 
 /*
- * Since transactions are managed by the Signer, unlike with a pure MulticallUnit, 
+ * Since transactions are managed by the Signer, unlike with a pure MulticallUnit,
  * view calls are typically executed before write transactions.
  * */
 

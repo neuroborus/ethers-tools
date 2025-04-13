@@ -7,14 +7,13 @@ describe('MulticallProvider - Local Test', () => {
   test('checking out for async calls', async () => {
     await waitForAddressTxs(WALLET.address, WALLET.provider);
 
-    const [first, second, both, writeCount, setFirstTx] =
-      await Promise.all([
-        MULTICALL_PROVIDER_CONTRACT['getFirst'](),
-        MULTICALL_PROVIDER_CONTRACT['getSecond'](),
-        MULTICALL_PROVIDER_CONTRACT['getBoth'](),
-        MULTICALL_PROVIDER_CONTRACT['getWriteCount'](),
-        MULTICALL_PROVIDER_CONTRACT['setFirst'](222),
-      ]);
+    const [first, second, both, writeCount, setFirstTx] = await Promise.all([
+      MULTICALL_PROVIDER_CONTRACT['getFirst'](),
+      MULTICALL_PROVIDER_CONTRACT['getSecond'](),
+      MULTICALL_PROVIDER_CONTRACT['getBoth'](),
+      MULTICALL_PROVIDER_CONTRACT['getWriteCount'](),
+      MULTICALL_PROVIDER_CONTRACT['setFirst'](222),
+    ]);
 
     expect(typeof both[0]).to.be.eq('bigint');
     expect(typeof first).to.be.eq('bigint');

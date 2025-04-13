@@ -1,5 +1,5 @@
 import {
-  Contract as EthersContract,
+  Contract,
   Interface,
   InterfaceAbi,
   Listener,
@@ -17,7 +17,7 @@ import { DynamicContract } from './dynamic-contract';
 import { DynamicContractConstructor } from './dynamic-contract-constructor';
 
 /**
- * Base wrapper around ethers.js BaseContract with built-in ContractCall (multicall) support,
+ * Base wrapper around ethers.js Contract with built-in ContractCall (multicall) support,
  * signal-based timeouts/aborts, dynamic mutability detection, and event/log streaming.
  */
 export declare class BaseContract {
@@ -84,7 +84,7 @@ export declare class BaseContract {
   /**
    * Internal ethers.js BaseContract instance.
    */
-  public readonly contract: EthersContract;
+  public readonly contract: Contract;
   protected readonly _driver?: Provider | Signer;
   protected readonly _contractOptions: ContractOptions;
 

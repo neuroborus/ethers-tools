@@ -159,7 +159,7 @@ export class MulticallProvider extends AbstractProvider {
   _scheduleRun() {
     if (!this._batchScheduled) {
       this._batchScheduled = true;
-      setTimeout(() => this._runBatch(), 0);
+      queueMicrotask(() => this._runBatch());
     }
   }
 

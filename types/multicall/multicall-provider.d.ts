@@ -1,6 +1,5 @@
 import {
   AbstractProvider,
-  Interface,
   Network,
   PerformActionRequest,
   Provider,
@@ -30,7 +29,7 @@ import { MulticallUnit } from './multicall-unit';
  * const contract = new BaseContract(address, abi, provider);
  * const result = await contract.totalSupply(); // Executed via multicall batching
  */
-export class MulticallProvider extends AbstractProvider {
+export declare class MulticallProvider extends AbstractProvider {
   /**
    * The base driver used for multicall.
    */

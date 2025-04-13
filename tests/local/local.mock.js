@@ -8,23 +8,20 @@ export const SIMPLE_STORAGE_ADDRESS =
 
 export const RPC_URL = 'ws://127.0.0.1:8545';
 export const PROVIDER = new ethers.WebSocketProvider(RPC_URL);
-export const MULTICALL_PROVIDER = new MulticallProvider(
-  PROVIDER,
-  undefined,
-  MULTICALL_ADDRESS
-);
+
 export const WALLET = new ethers.Wallet(
   '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
   PROVIDER
 );
-export const ETHERS_MULTICALL_DRIVER = new ethers.Wallet(
-  '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
-  MULTICALL_PROVIDER
+export const MULTICALL_PROVIDER = new MulticallProvider(
+  WALLET,
+  undefined,
+  MULTICALL_ADDRESS
 );
-export const ETHERS_MULTICALL_CONTRACT = new Contract(
+export const MULTICALL_PROVIDER_CONTRACT = new Contract(
   SIMPLE_STORAGE_ADDRESS,
   StorageAbi,
-  ETHERS_MULTICALL_DRIVER
+  MULTICALL_PROVIDER
 );
 
 export class SimpleStorage extends BaseContract {

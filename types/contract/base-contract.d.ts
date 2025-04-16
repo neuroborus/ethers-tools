@@ -3,7 +3,6 @@ import {
   Interface,
   InterfaceAbi,
   Listener,
-  LogDescription,
   Provider,
   Signer,
 } from 'ethers';
@@ -11,6 +10,7 @@ import {
   ContractCall,
   ContractCallOptions,
   ContractGetLogsOptions,
+  ContractLog,
   ContractOptions,
 } from '../entities';
 import { DynamicContract } from './dynamic-contract';
@@ -139,7 +139,7 @@ export declare class BaseContract {
     eventsNames?: string[],
     toBlock?: number,
     options?: ContractGetLogsOptions
-  ): Promise<LogDescription[]>;
+  ): Promise<ContractLog[]>;
   /**
    * Asynchronous generator that yields logs one-by-one in batches.
    * Allows for streaming consumption and signal-based cancellation.
@@ -149,7 +149,7 @@ export declare class BaseContract {
     eventsNames?: string[],
     toBlock?: number,
     options?: ContractGetLogsOptions
-  ): AsyncGenerator<LogDescription, void, unknown>;
+  ): AsyncGenerator<ContractLog, void, unknown>;
 
   _getTimeoutSignal(
     isStatic: boolean,

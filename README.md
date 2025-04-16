@@ -150,25 +150,27 @@ expect(JSON.stringify(list)).toBe(
 #### Events listening
 
 ```typescript
+import { ContractEventPayload } from 'ethers';
+
 /**
  * --- Listening to Events ---
  */
-const data: Set<{ address: string; id: bigint }> = new Set();
+const data: Map<string, { address: string; id: bigint }> = new Map();
 // Realtime listening
 registry.listenEvent(
   'AddressesProviderRegistered',
-  (addressesProvider: string, id: bigint) => {
-    data.add({
+  (addressesProvider: string, id: bigint, payload: ContractEventPayload) => {
+    data.set(payload.log.transactionHash, {
       addressesProvider,
       id,
     });
   }
 );
 // Historical logs from last 30,000 blocks
-for await (const dLog of registry.getLogsStream(-30000, [
+for await (const cLog of registry.getLogsStream(-30000, [
   'AddressesProviderRegistered',
 ])) {
-  data.add(dLog);
+  data.set(cLog.log.transactionHash, cLog.description);
 }
 ```
 
@@ -226,9 +228,9 @@ providing an ethers `Signer` (e.g, `Wallet`) as the driver.
 - `getCall(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall` // Creates a `ContractCall` for `MulticallUnit`.
   Throws an error if unable to create. You can do force replacement with a `callData` parameter.
 - `listenEvent(eventName: string, listener: Listener): Promise<BaseContract>` // Creates event listener on the contract. WebsocketProvider is required.
-- `getLogs(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): Promise<Log[]>` // Synchronous log retrieval.
+- `getLogs(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): Promise<ContractLog[]>` // Synchronous log retrieval.
   'fromBlocks' can have a minus sign, which means 'n blocks ago'.
-- `getLogsStream(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): AsyncGenerator<Log, void, unknown>` // Asynchronous way to getting logs.
+- `getLogsStream(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): AsyncGenerator<ContractLog, void>` // Asynchronous way to getting logs.
 
 #### ContractOptions
 
@@ -279,6 +281,15 @@ export declare enum StateMutability {
 export interface ContractGetLogsOptions {
   blocksStep?: number; // Quantity of processed blocks per iteration during log parsing
   delayMs?: number; // Delay between log parsing iterations.
+}
+```
+
+#### ContractLog
+
+```typescript
+export interface ContractLog {
+  log: Log; // Info about log
+  description: LogDescription; // Parsed data
 }
 ```
 

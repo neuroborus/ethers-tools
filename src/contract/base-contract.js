@@ -288,20 +288,19 @@ export class BaseContract {
    * @param {string[]} [eventsNames=[]]
    * @param {number} [toBlock=0]
    * @param {import('../../types/entities').ContractGetLogsOptions} [options={}]
-   * @returns {Promise<import('ethers').LogDescription[]>}
+   * @returns {Promise<import('../../types/entities').ContractLog[]>}
    */
   async getLogs(fromBlock, eventsNames = [], toBlock = 0, options = {}) {
-    const descriptions = [];
-    for await (const description of this.getLogsStream(
+    const contractLogs = [];
+    for await (const contractLog of this.getLogsStream(
       fromBlock,
       eventsNames,
       toBlock,
       options
     )) {
-      descriptions.push(description);
+      contractLogs.push(contractLog);
     }
-
-    return descriptions;
+    return contractLogs;
   }
 
   /**
@@ -312,7 +311,7 @@ export class BaseContract {
    * @param {string[]} [eventsNames=[]]
    * @param {number} [toBlock=0]
    * @param {import('../../types/entities').ContractGetLogsOptions} [options={}]
-   * @returns {AsyncGenerator<import('ethers').LogDescription, void>}
+   * @returns {AsyncGenerator<import('../../types/entities').ContractLog, void>}
    */
   async *getLogsStream(
     fromBlock,
@@ -359,7 +358,10 @@ export class BaseContract {
         checkSignals(options.signals);
         const description = this.interface.parseLog(log);
         if (!description) continue;
-        yield description;
+        yield {
+          log,
+          description,
+        };
       }
 
       await waitWithSignals(streamOptions.delayMs, options.signals);

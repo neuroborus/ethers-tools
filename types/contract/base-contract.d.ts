@@ -1,9 +1,8 @@
 import {
-  Contract as EthersContract,
+  Contract,
   Interface,
   InterfaceAbi,
   Listener,
-  LogDescription,
   Provider,
   Signer,
 } from 'ethers';
@@ -11,13 +10,14 @@ import {
   ContractCall,
   ContractCallOptions,
   ContractGetLogsOptions,
+  ContractLog,
   ContractOptions,
 } from '../entities';
 import { DynamicContract } from './dynamic-contract';
 import { DynamicContractConstructor } from './dynamic-contract-constructor';
 
 /**
- * Base wrapper around ethers.js BaseContract with built-in ContractCall (multicall) support,
+ * Base wrapper around ethers.js Contract with built-in ContractCall (multicall) support,
  * signal-based timeouts/aborts, dynamic mutability detection, and event/log streaming.
  */
 export declare class BaseContract {
@@ -84,7 +84,7 @@ export declare class BaseContract {
   /**
    * Internal ethers.js BaseContract instance.
    */
-  public readonly contract: EthersContract;
+  public readonly contract: Contract;
   protected readonly _driver?: Provider | Signer;
   protected readonly _contractOptions: ContractOptions;
 
@@ -139,7 +139,7 @@ export declare class BaseContract {
     eventsNames?: string[],
     toBlock?: number,
     options?: ContractGetLogsOptions
-  ): Promise<LogDescription[]>;
+  ): Promise<ContractLog[]>;
   /**
    * Asynchronous generator that yields logs one-by-one in batches.
    * Allows for streaming consumption and signal-based cancellation.
@@ -149,7 +149,7 @@ export declare class BaseContract {
     eventsNames?: string[],
     toBlock?: number,
     options?: ContractGetLogsOptions
-  ): AsyncGenerator<LogDescription, void, unknown>;
+  ): AsyncGenerator<ContractLog, void, unknown>;
 
   _getTimeoutSignal(
     isStatic: boolean,

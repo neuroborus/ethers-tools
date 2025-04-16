@@ -1,4 +1,4 @@
-import { Contract as EthersContract, WebSocketProvider } from 'ethers';
+import { Contract, WebSocketProvider } from 'ethers';
 import { CallMutability } from '../entities/index.js';
 import { config } from '../config.js';
 import { isSigner, isStaticMethod, priorityCall } from '../helpers/index.js';
@@ -12,7 +12,7 @@ import {
 import { contractCreateCallName } from './contract-create-call-name.js';
 
 /**
- * Base wrapper around ethers.js BaseContract with built-in ContractCall (multicall) support,
+ * Base wrapper around ethers.js Contract with built-in ContractCall (multicall) support,
  * signal-based timeouts/aborts, dynamic mutability detection, and event/log streaming.
  */
 export class BaseContract {
@@ -112,7 +112,7 @@ export class BaseContract {
    * Internal ethers.js BaseContract instance.
    * @readonly
    * @public
-   * @type {EthersContract}
+   * @type {import('ethers').Contract}
    */
   contract;
   /**
@@ -144,7 +144,7 @@ export class BaseContract {
     this._driver = driver;
     this.callable = !!address && !!driver;
     this.readonly = !this.callable || !(driver && isSigner(driver)); // if Signer
-    this.contract = new EthersContract(address, abi, driver);
+    this.contract = new Contract(address, abi, driver);
     this._contractOptions = {
       staticCallsTimeoutMs: config.contract.staticCalls.timeoutMs,
       mutableCallsTimeoutMs: config.contract.mutableCalls.timeoutMs,
@@ -173,7 +173,7 @@ export class BaseContract {
   }
 
   /**
-   * BaseContract interface (ABI parser).
+   * Contract interface (ABI parser).
    * @public
    * @returns {import('ethers').Interface}
    */
@@ -288,20 +288,19 @@ export class BaseContract {
    * @param {string[]} [eventsNames=[]]
    * @param {number} [toBlock=0]
    * @param {import('../../types/entities').ContractGetLogsOptions} [options={}]
-   * @returns {Promise<import('ethers').LogDescription[]>}
+   * @returns {Promise<import('../../types/entities').ContractLog[]>}
    */
   async getLogs(fromBlock, eventsNames = [], toBlock = 0, options = {}) {
-    const descriptions = [];
-    for await (const description of this.getLogsStream(
+    const contractLogs = [];
+    for await (const contractLog of this.getLogsStream(
       fromBlock,
       eventsNames,
       toBlock,
       options
     )) {
-      descriptions.push(description);
+      contractLogs.push(contractLog);
     }
-
-    return descriptions;
+    return contractLogs;
   }
 
   /**
@@ -312,7 +311,7 @@ export class BaseContract {
    * @param {string[]} [eventsNames=[]]
    * @param {number} [toBlock=0]
    * @param {import('../../types/entities').ContractGetLogsOptions} [options={}]
-   * @returns {AsyncGenerator<import('ethers').LogDescription, void>}
+   * @returns {AsyncGenerator<import('../../types/entities').ContractLog, void>}
    */
   async *getLogsStream(
     fromBlock,
@@ -359,7 +358,10 @@ export class BaseContract {
         checkSignals(options.signals);
         const description = this.interface.parseLog(log);
         if (!description) continue;
-        yield description;
+        yield {
+          log,
+          description,
+        };
       }
 
       await waitWithSignals(streamOptions.delayMs, options.signals);

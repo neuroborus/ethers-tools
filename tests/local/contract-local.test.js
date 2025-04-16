@@ -15,8 +15,9 @@ describe('Local BaseContract Tests', () => {
 
     let eventCount = 0;
     storage
-      .listenEvent('FirstChanged', () => {
+      .listenEvent('FirstChanged', (newValue, writeCount, payload) => {
         eventCount++;
+        expect(payload.log.transactionHash).to.be('string');
       })
       .catch(console.error);
 

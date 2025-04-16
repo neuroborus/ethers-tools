@@ -5,6 +5,7 @@ export * from './contract-get-logs-options';
 export * from './contract-options';
 export * from './contract-call';
 export * from './contract-call-options';
+export * from './contract-log';
 export * from './multicall-tags';
 export * from './multicall-options';
 export * from './multicall-wait-options';

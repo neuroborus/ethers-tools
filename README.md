@@ -193,7 +193,7 @@ providing an ethers `Signer` (e.g, `Wallet`) as the driver.
 - `.callable` // Flag that indicates whether calls (static or mutable) can be made.
 - `.readonly` // Flag that indicates whether only static calls are allowed (false if mutable calls are possible).
 - `.interface` // Ethers contract interface.
-- `.contract` // 'Bare' ethers BaseContract.
+- `.contract` // 'Bare' ethers Contract.
 - `.provider` // Ethers Provider.
 - `.signer` // Ethers Signer.
 
@@ -227,7 +227,7 @@ providing an ethers `Signer` (e.g, `Wallet`) as the driver.
   Throws an error if unable to execute.
 - `getCall(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall` // Creates a `ContractCall` for `MulticallUnit`.
   Throws an error if unable to create. You can do force replacement with a `callData` parameter.
-- `listenEvent(eventName: string, listener: Listener): Promise<BaseContract>` // Creates event listener on the contract. WebsocketProvider is required.
+- `listenEvent(eventName: string, listener: Listener): Promise<Contract>` // Creates event listener on the contract. WebsocketProvider is required.
 - `getLogs(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): Promise<ContractLog[]>` // Synchronous log retrieval.
   'fromBlocks' can have a minus sign, which means 'n blocks ago'.
 - `getLogsStream(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): AsyncGenerator<ContractLog, void>` // Asynchronous way to getting logs.
@@ -513,7 +513,7 @@ export declare const priorityCall: (
   // Function that allows making custom priority calls
   provider: Provider,
   signer: Signer,
-  contract: BaseContract,
+  contract: Contract,
   method: string,
   args: any[],
   options: PriorityCallOptions

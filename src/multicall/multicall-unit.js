@@ -1,4 +1,3 @@
-import { TransactionReceipt } from 'ethers';
 import { EventEmitter } from 'node:events';
 import { Multicall3Abi } from '../abis/index.js';
 import { CallMutability } from '../entities/index.js';

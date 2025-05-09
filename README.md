@@ -225,6 +225,7 @@ providing an ethers `Signer` (e.g, `Wallet`) as the driver.
 
 - `call<T = unknown>(methodName: string, args?: any[], options?: CallOptions): Promise<T>` // Performs a single on-chain call for the contract.
   Throws an error if unable to execute.
+- `estimate(method: string, args?: any[], options?: ContractCallOptions): Promise<bigint>;` // Estimates gas required to execute a contract method.
 - `getCall(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall` // Creates a `ContractCall` for `MulticallUnit`.
   Throws an error if unable to create. You can do force replacement with a `callData` parameter.
 - `listenEvent(eventName: string, listener: Listener): Promise<Contract>` // Creates event listener on the contract. WebsocketProvider is required.
@@ -337,6 +338,7 @@ constructor(
 - `add(contractCall: ContractCall, tags?: MulticallTags): MulticallTags` // Add new call. Returns Tags as reference.
 - `addBatch(associatedCalls: MulticallAssociatedCall[]): MulticallTags[]` // Adds a batch of contract call with associated tags.
 - `run(options?: MulticallOptions): Promise<boolean>` // Executes the multicall operation.
+- `estimateRun(options?: MulticallOptions): Promise<bigint[]>` // Estimates gas for each batch of mutable calls (estimates .run() method).
 
 ---
 
@@ -518,6 +520,18 @@ export declare const priorityCall: (
   args: any[],
   options: PriorityCallOptions
 ) => Promise<TransactionResponse>;
+```
+
+```typescript
+export declare const priorityCallEstimate: (
+  // Function that allows you to estimate gas for your custom priority calls
+  provider: Provider,
+  signer: Signer,
+  contract: Contract,
+  method: string,
+  args: any[],
+  options: PriorityCallOptions
+) => Promise<bigint>;
 ```
 
 ```typescript

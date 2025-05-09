@@ -1,7 +1,12 @@
 import { Contract, WebSocketProvider } from 'ethers';
 import { CallMutability } from '../entities/index.js';
 import { config } from '../config.js';
-import { isSigner, isStaticMethod, priorityCall } from '../helpers/index.js';
+import {
+  isSigner,
+  isStaticMethod,
+  priorityCall,
+  priorityCallEstimate,
+} from '../helpers/index.js';
 import { CONTRACTS_ERRORS } from '../errors/index.js';
 import {
   checkSignals,
@@ -238,6 +243,68 @@ export class BaseContract {
       }
       return tx;
     }
+  }
+
+  /**
+   * Estimates gas required to execute a contract method.
+   * Automatically detects whether the method is static or mutable and throws if static.
+   * Supports signal-based timeouts and aborts.
+   * @template T
+   * @public
+   * @param {string} method
+   * @param {any[]} [args=[]]
+   * @param {import('../../types/entities').ContractCallOptions} [options={}]
+   * @returns {Promise<bigint>}
+   */
+  async estimate(method, args = [], options = {}) {
+    if (!this.callable) throw CONTRACTS_ERRORS.NON_CALLABLE_CONTRACT_INVOCATION;
+    const methodFn = this.contract[method];
+
+    if (!methodFn) throw CONTRACTS_ERRORS.METHOD_NOT_DEFINED(method);
+
+    const functionFragment = this.contract.interface.getFunction(method);
+    if (!functionFragment) throw CONTRACTS_ERRORS.FRAGMENT_NOT_DEFINED(method);
+
+    if (isStaticMethod(functionFragment.stateMutability))
+      throw CONTRACTS_ERRORS.ESTIMATE_STATIC_CALL(method);
+
+    const callOptions = {
+      highPriorityTx: this._contractOptions.highPriorityTxs,
+      priorityOptions: this._contractOptions.priorityOptions,
+      ...options,
+    };
+
+    const localSignals = [];
+    if (callOptions.signals) localSignals.push(...callOptions.signals);
+    if (callOptions.timeoutMs)
+      localSignals.push(this._getTimeoutSignal(false, callOptions.timeoutMs));
+
+    if (this.readonly) throw CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION;
+    let estimate;
+    if (callOptions.highPriorityTx) {
+      const provider = this._driver.provider;
+      estimate = await raceWithSignals(
+        () =>
+          priorityCallEstimate(
+            provider,
+            this._driver,
+            this.contract,
+            method,
+            args,
+            {
+              signals: localSignals,
+              ...options.priorityOptions,
+            }
+          ),
+        localSignals
+      );
+    } else {
+      estimate = await raceWithSignals(
+        () => this.contract[method].estimateGas(...args),
+        localSignals
+      );
+    }
+    return estimate;
   }
 
   /**

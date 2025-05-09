@@ -653,34 +653,13 @@ export class MulticallUnit extends BaseContract {
     try {
       checkSignals(runOptions.signals);
 
-      let staticCalls;
-      let staticIndexes;
-      let mutableCalls;
-      let mutableTags;
-      let mutableIndexes;
-
-      if (runOptions.forceMutability) {
-        if (runOptions.forceMutability === CallMutability.Static) {
-          staticCalls = calls;
-          staticIndexes = Array.from({ length: calls.length }, (_, i) => i);
-          mutableCalls = [];
-          mutableTags = [];
-          mutableIndexes = [];
-        } else {
-          staticCalls = [];
-          staticIndexes = [];
-          mutableCalls = calls;
-          mutableTags = tags;
-          mutableIndexes = Array.from({ length: calls.length }, (_, i) => i);
-        }
-      } else {
-        const split = multicallSplitCalls(calls, tags);
-        staticCalls = split.staticCalls;
-        staticIndexes = split.staticIndexes;
-        mutableCalls = split.mutableCalls;
-        mutableTags = split.mutableTags;
-        mutableIndexes = split.mutableIndexes;
-      }
+      const {
+        staticCalls,
+        staticIndexes,
+        mutableCalls,
+        mutableTags,
+        mutableIndexes,
+      } = this._splitCalls(calls, tags, options.forceMutability);
 
       // Process mutable
       for (
@@ -744,6 +723,106 @@ export class MulticallUnit extends BaseContract {
   }
 
   /**
+   * Estimates gas usage for all mutable calls in the multicall queue, processed in batches.
+   * Static calls are ignored during estimation. Handles batch size limits and signal-based aborts.
+   * @public
+   * @param {import('../../types/entities').MulticallOptions} [options={}]
+   * @returns {Promise<bigint[]>}
+   */
+  async estimateRun(options = {}) {
+    const runOptions = {
+      ...this._multicallOptions,
+      ...options,
+    };
+
+    const tags = this.tags;
+    const calls = this.calls;
+
+    checkSignals(runOptions.signals);
+
+    const {
+      _staticCalls,
+      _staticIndexes,
+      mutableCalls,
+      mutableTags,
+      _mutableIndexes,
+    } = this._splitCalls(calls, tags, options.forceMutability);
+
+    const estimates = [];
+
+    // Process mutable
+    for (
+      let i = 0;
+      i < mutableCalls.length;
+      i += runOptions.maxMutableCallsStack
+    ) {
+      checkSignals(runOptions.signals);
+
+      const border = Math.min(
+        i + runOptions.maxMutableCallsStack,
+        mutableCalls.length
+      );
+      const iterationCalls = mutableCalls.slice(i, border); // half-opened interval
+      const iterationTags = mutableTags.slice(i, border);
+
+      const estimation = await this._estimateMutableCallsBatch(
+        iterationCalls,
+        iterationTags,
+        runOptions
+      );
+      estimates.push(estimation);
+    }
+
+    return estimates;
+  }
+
+  /**
+   * @private
+   * @param {import('../../types/entities').ContractCall[]} calls
+   * @param {import('../../types/entities').Tagable[]} tags
+   * @param {import('../../types/entities').CallMutability} [forceMutability]
+   * @returns {import('../../types/entities').SplitCalls}
+   */
+  _splitCalls(calls, tags, forceMutability) {
+    let staticCalls;
+    let staticIndexes;
+    let mutableCalls;
+    let mutableTags;
+    let mutableIndexes;
+
+    if (forceMutability) {
+      if (forceMutability === CallMutability.Static) {
+        staticCalls = calls;
+        staticIndexes = Array.from({ length: calls.length }, (_, i) => i);
+        mutableCalls = [];
+        mutableTags = [];
+        mutableIndexes = [];
+      } else {
+        staticCalls = [];
+        staticIndexes = [];
+        mutableCalls = calls;
+        mutableTags = tags;
+        mutableIndexes = Array.from({ length: calls.length }, (_, i) => i);
+      }
+    } else {
+      const split = multicallSplitCalls(calls, tags);
+      staticCalls = split.staticCalls;
+      staticIndexes = split.staticIndexes;
+      mutableCalls = split.mutableCalls;
+      mutableTags = split.mutableTags;
+      mutableIndexes = split.mutableIndexes;
+    }
+
+    return {
+      staticCalls,
+      staticIndexes,
+      mutableCalls,
+      mutableTags,
+      mutableIndexes,
+    };
+  }
+
+  /**
    * @private
    * @param {import('../../types/entities').ContractCall[]} iterationCalls
    * @param {import('../../types/entities').MulticallOptions} runOptions
@@ -795,6 +874,23 @@ export class MulticallUnit extends BaseContract {
       this._lastSuccess = !(this._lastSuccess === false);
     }
     return result;
+  }
+
+  /**
+   * @private
+   * @param {import('../../types/entities').ContractCall[]} iterationCalls
+   * @param {import('../../types/entities').Tagable[]} iterationTags
+   * @param {import('../../types/entities').MulticallOptions} runOptions
+   * @returns {Promise<bigint>}
+   */
+  async _estimateMutableCallsBatch(iterationCalls, iterationTags, runOptions) {
+    return this.estimate(aggregate3, [iterationCalls], {
+      forceMutability: CallMutability.Mutable,
+      highPriorityTx: runOptions.highPriorityTxs,
+      priorityOptions: runOptions.priorityOptions,
+      signals: runOptions.signals,
+      timeoutMs: runOptions.mutableCallsTimeoutMs,
+    });
   }
 
   /**

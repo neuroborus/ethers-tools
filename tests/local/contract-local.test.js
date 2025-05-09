@@ -103,4 +103,32 @@ describe('Local BaseContract Tests', () => {
 
     expect(error.message).to.match(/aborted/);
   });
+
+  test('call estimate should be accurate', async () => {
+    await waitForAddressTxs(WALLET.address, WALLET.provider);
+
+    const toSet = 909;
+    const estimate = await storage.setFirstEstimate(toSet);
+
+    const tx = await storage.setFirst(toSet);
+    const receipt = await tx.wait();
+
+    expect(estimate).to.been.eq(receipt.gasUsed);
+  });
+
+  test('priority call estimate should be accurate', async () => {
+    await waitForAddressTxs(WALLET.address, WALLET.provider);
+
+    const toSet = 909;
+    const options = {
+      highPriorityTx: true,
+    };
+
+    const estimate = await storage.setFirstEstimate(toSet, options);
+
+    const tx = await storage.setFirst(toSet, options);
+    const receipt = await tx.wait();
+
+    expect(estimate).to.been.eq(receipt.gasUsed);
+  });
 });

@@ -6,6 +6,7 @@ import {
 } from 'ethers';
 import { EventEmitter } from 'node:events';
 import {
+  CallMutability,
   ContractCall,
   MulticallOptions,
   MulticallTags,
@@ -257,6 +258,17 @@ export declare class MulticallUnit extends BaseContract {
    * Fills internal response state, handles signal support and batch limits.
    */
   public run(options?: MulticallOptions): Promise<boolean>;
+  /**
+   * Estimates gas usage for all mutable calls in the multicall queue, processed in batches.
+   * Static calls are ignored during estimation. Handles batch size limits and signal-based aborts.
+   */
+  public estimateRun(options?: MulticallOptions): Promise<bigint[]>;
+
+  private _splitCalls(
+    calls: ContractCall[],
+    tags: Tagable[],
+    forceMutability?: CallMutability
+  ): Promise<MulticallResponse[]>;
   private _processStaticCalls(
     iterationCalls: ContractCall[],
     runOptions: MulticallOptions

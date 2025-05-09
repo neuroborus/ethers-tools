@@ -16,4 +16,8 @@ export const CONTRACTS_ERRORS = {
     'Attempted to listen for contract events, but no WebSocketProvider was provided!'
   ),
   MISSING_PROVIDER: new Error('A provider is required, but none was provided!'),
+  ESTIMATE_STATIC_CALL: (methodName) =>
+    new Error(
+      `Cannot estimate gas for static (view/pure) method "${methodName}"!`
+    ),
 };

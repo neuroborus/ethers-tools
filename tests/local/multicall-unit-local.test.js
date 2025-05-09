@@ -337,4 +337,46 @@ describe('MulticallUnit - Local Test', () => {
     expect(first).to.be.eq(40n);
     expect(result).to.be.true;
   });
+
+  test('single batch estimate should be accurate', async () => {
+    const unit = new MulticallUnit(
+      WALLET,
+      {
+        maxMutableCallsStack: 2,
+      },
+      MULTICALL_ADDRESS
+    );
+
+    unit.add(storage.setFirstCall(40), 0);
+    unit.add(storage.setSecondCall(41), 1);
+
+    const [estimate] = await unit.estimateRun();
+    await unit.run();
+    const receipt = unit.getTxReceipt(0);
+
+    expect(estimate).to.be.eq(receipt.gasUsed);
+  });
+
+  test('multiple batches estimate should be accurate', async () => {
+    const unit = new MulticallUnit(
+      WALLET,
+      {
+        maxMutableCallsStack: 2,
+      },
+      MULTICALL_ADDRESS
+    );
+
+    unit.add(storage.setFirstCall(40), 0);
+    unit.add(storage.setSecondCall(41), 1);
+    unit.add(storage.setFirstCall(40), 2);
+    unit.add(storage.setSecondCall(41), 3);
+
+    const [estimate01, estimate23] = await unit.estimateRun();
+    await unit.run();
+    const receipt01 = unit.getTxReceipt(0);
+    const receipt02 = unit.getTxReceipt(2);
+
+    expect(estimate01).to.be.eq(receipt01.gasUsed);
+    expect(estimate23).to.be.eq(receipt02.gasUsed);
+  });
 });

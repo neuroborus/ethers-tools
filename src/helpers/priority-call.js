@@ -18,6 +18,50 @@ export async function priorityCall(
   args = [],
   options = {}
 ) {
+  const txn = await formTx(provider, signer, contract, method, args, options);
+
+  return signer.sendTransaction(txn);
+}
+
+/**
+ * @param {import('ethers').Provider} provider
+ * @param {import('ethers').Signer} signer
+ * @param {import('ethers').Contract} contract
+ * @param {string} method
+ * @param {any[]} [args=[]]
+ * @param {import('../../types/entities').PriorityCallOptions} [options={}]
+ * @returns {Promise<bigint>}
+ */
+export async function priorityCallEstimate(
+  provider,
+  signer,
+  contract,
+  method,
+  args = [],
+  options = {}
+) {
+  const txn = await formTx(provider, signer, contract, method, args, options);
+
+  return signer.estimateGas(txn);
+}
+
+/**
+ * @param {import('ethers').Provider} provider
+ * @param {import('ethers').Signer} signer
+ * @param {import('ethers').Contract} contract
+ * @param {string} method
+ * @param {any[]} [args=[]]
+ * @param {import('../../types/entities').PriorityCallOptions} [options={}]
+ * @returns {Promise<import('ethers').TransactionLike<string>>}
+ */
+async function formTx(
+  provider,
+  signer,
+  contract,
+  method,
+  args = [],
+  options = {}
+) {
   const localOptions = {
     multiplier: config.priorityCalls.multiplier,
     ...options,
@@ -66,8 +110,7 @@ export async function priorityCall(
     if (localOptions.chainId) txn.chainId = localOptions.chainId;
   }
 
-  checkSignals(localSignals);
-  return signer.sendTransaction(txn);
+  return txn;
 }
 
 /**

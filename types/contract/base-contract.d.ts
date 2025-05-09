@@ -118,6 +118,16 @@ export declare class BaseContract {
     options?: ContractCallOptions
   ): Promise<T>;
   /**
+   * Estimates gas required to execute a contract method.
+   * Automatically detects whether the method is static or mutable and throws if static.
+   * Supports signal-based timeouts and aborts.
+   */
+  estimate(
+    method: string,
+    args?: any[],
+    options?: ContractCallOptions
+  ): Promise<bigint>;
+  /**
    * Creates a low-level call object for a given method, for use with multicall or batching.
    */
   getCall(

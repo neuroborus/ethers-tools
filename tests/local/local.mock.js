@@ -32,6 +32,9 @@ export class SimpleStorage extends BaseContract {
   setFirst(newValue, options) {
     return this.call('setFirst', [newValue], options);
   }
+  setFirstEstimate(newValue, options) {
+    return this.estimate('setFirst', [newValue], options);
+  }
   setFirstCall(newValue) {
     return this.getCall('setFirst', [newValue]);
   }

@@ -193,7 +193,7 @@ providing an ethers `Signer` (e.g, `Wallet`) as the driver.
 - `.callable` // Flag that indicates whether calls (static or mutable) can be made.
 - `.readonly` // Flag that indicates whether only static calls are allowed (false if mutable calls are possible).
 - `.interface` // Ethers contract interface.
-- `.contract` // 'Bare' ethers BaseContract.
+- `.contract` // 'Bare' ethers Contract.
 - `.provider` // Ethers Provider.
 - `.signer` // Ethers Signer.
 
@@ -225,9 +225,10 @@ providing an ethers `Signer` (e.g, `Wallet`) as the driver.
 
 - `call<T = unknown>(methodName: string, args?: any[], options?: CallOptions): Promise<T>` // Performs a single on-chain call for the contract.
   Throws an error if unable to execute.
+- `estimate(method: string, args?: any[], options?: ContractCallOptions): Promise<bigint>;` // Estimates gas required to execute a contract method.
 - `getCall(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall` // Creates a `ContractCall` for `MulticallUnit`.
   Throws an error if unable to create. You can do force replacement with a `callData` parameter.
-- `listenEvent(eventName: string, listener: Listener): Promise<BaseContract>` // Creates event listener on the contract. WebsocketProvider is required.
+- `listenEvent(eventName: string, listener: Listener): Promise<Contract>` // Creates event listener on the contract. WebsocketProvider is required.
 - `getLogs(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): Promise<ContractLog[]>` // Synchronous log retrieval.
   'fromBlocks' can have a minus sign, which means 'n blocks ago'.
 - `getLogsStream(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): AsyncGenerator<ContractLog, void>` // Asynchronous way to getting logs.
@@ -337,6 +338,7 @@ constructor(
 - `add(contractCall: ContractCall, tags?: MulticallTags): MulticallTags` // Add new call. Returns Tags as reference.
 - `addBatch(associatedCalls: MulticallAssociatedCall[]): MulticallTags[]` // Adds a batch of contract call with associated tags.
 - `run(options?: MulticallOptions): Promise<boolean>` // Executes the multicall operation.
+- `estimateRun(options?: MulticallOptions): Promise<bigint[]>` // Estimates gas for each batch of mutable calls (estimates .run() method).
 
 ---
 
@@ -513,11 +515,23 @@ export declare const priorityCall: (
   // Function that allows making custom priority calls
   provider: Provider,
   signer: Signer,
-  contract: BaseContract,
+  contract: Contract,
   method: string,
   args: any[],
   options: PriorityCallOptions
 ) => Promise<TransactionResponse>;
+```
+
+```typescript
+export declare const priorityCallEstimate: (
+  // Function that allows you to estimate gas for your custom priority calls
+  provider: Provider,
+  signer: Signer,
+  contract: Contract,
+  method: string,
+  args: any[],
+  options: PriorityCallOptions
+) => Promise<bigint>;
 ```
 
 ```typescript

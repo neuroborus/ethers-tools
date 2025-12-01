@@ -739,10 +739,11 @@ export class MulticallUnit extends BaseContract {
 
     checkSignals(runOptions.signals);
 
-    const {
-      mutableCalls,
-      mutableTags,
-    } = this._splitCalls(calls, tags, options.forceMutability);
+    const { mutableCalls, mutableTags } = this._splitCalls(
+      calls,
+      tags,
+      options.forceMutability
+    );
 
     const estimates = [];
 

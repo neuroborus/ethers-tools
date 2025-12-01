@@ -687,26 +687,42 @@ export class MulticallUnit extends BaseContract {
       }
 
       // Process static
+      const concurrency = Math.max(1, runOptions.maxAsyncReadBatches ?? 1);
+      const staticBatches = [];
       for (
         let i = 0;
         i < staticCalls.length;
         i += runOptions.maxStaticCallsStack
       ) {
-        checkSignals(runOptions.signals);
-
         const border = Math.min(
           i + runOptions.maxStaticCallsStack,
           staticCalls.length
         );
-        const iterationCalls = staticCalls.slice(i, border); // half-opened interval
-        const iterationIndexes = staticIndexes.slice(i, border); // half-opened interval
 
-        const iterationResponse = await this._processStaticCalls(
-          iterationCalls,
-          runOptions
+        staticBatches.push({
+          calls: staticCalls.slice(i, border), // half-open interval
+          indexes: staticIndexes.slice(i, border), // half-open interval
+        });
+      }
+
+      for (let i = 0; i < staticBatches.length; i += concurrency) {
+        checkSignals(runOptions.signals);
+
+        const group = staticBatches.slice(i, i + concurrency);
+
+        await Promise.all(
+          group.map(async (batch) => {
+            checkSignals(runOptions.signals);
+
+            const iterationResponse = await this._processStaticCalls(
+              batch.calls,
+              runOptions
+            );
+
+            this._saveResponse(iterationResponse, batch.indexes, tags);
+          })
         );
 
-        this._saveResponse(iterationResponse, iterationIndexes, tags);
         await waitWithSignals(runOptions.batchDelayMs, runOptions.signals);
       }
     } catch (error) {

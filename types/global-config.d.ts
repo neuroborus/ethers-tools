@@ -1,4 +1,4 @@
-export type GlobalConfig = {
+export interface GlobalConfig {
   multicallUnit: {
     address: string;
     allowFailure: boolean;
@@ -18,6 +18,7 @@ export type GlobalConfig = {
       multiplier: number;
     };
     batchDelayMs: number;
+    maxAsyncReadBatches: number;
   };
   contract: {
     staticCalls: {
@@ -34,4 +35,4 @@ export type GlobalConfig = {
   priorityCalls: {
     multiplier: number;
   };
-};
+}

@@ -8,7 +8,7 @@ import {
   SimpleStorageAutoClass,
   SimpleStorageAutoInstance,
   WALLET,
-} from './local.mock.js';
+} from './anvil.mock.js';
 
 const storage = new SimpleStorage(WALLET);
 

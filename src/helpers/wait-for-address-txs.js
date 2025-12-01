@@ -11,6 +11,6 @@ export const waitForAddressTxs = async (address, provider, delayMs = 1000) => {
     const latestNonce = await provider.getTransactionCount(address, 'latest');
     flag = pendingNonce > latestNonce;
 
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    if (flag) await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 };

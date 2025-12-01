@@ -1,7 +1,7 @@
 import { TransactionResponse } from 'ethers';
 import { describe, expect, test } from 'vitest';
 import { waitForAddressTxs } from '../../src/index.js';
-import { MULTICALL_PROVIDER_CONTRACT, WALLET } from './local.mock.js';
+import { MULTICALL_PROVIDER_CONTRACT, WALLET } from './anvil.mock.js';
 
 describe('MulticallProvider - Local Test', () => {
   test('checking out for async calls', async () => {

@@ -1,22 +1,18 @@
-# Local Testing
-
-If you want to run local tests, you will need a few items:
+# Anvil Testing
 
 ## Quickstart
 
-- `cd ./tests/local`
+- `npm run test:anvil`
+
+If you want to run local tests, you will need a few items:
 
 ### Foundry & anvil
 
-- Installed [Foundry](https://book.getfoundry.sh/getting-started/installation)  
-   Start anvil:
-
-- `cp ./anvil-data ./anvil-data-tmp`
-- `anvil --state ./anvil-data-tmp --block-time 3` - you will use locally saved chain state
+- Requires [Foundry](https://book.getfoundry.sh/getting-started/installation)
 
 ## Manual deployment
 
-In case you don't want to use prepared `./anvil-data`, you can deploy it yourself.
+In case you don't want to use prepared `./anvil-state.json`, you can deploy it yourself.
 
 ### Needed Tools
 
@@ -49,6 +45,6 @@ forge create --rpc-url http://127.0.0.1:8545   --private-key 0xac0974bec39a17e36
 
 ### Mock
 
-Update [local mock](local.mock.js) with the deployed contract addresses and private key used.
+Update [local mock](anvil.mock.js) with the deployed contract addresses and private key used.
 
 That's all!

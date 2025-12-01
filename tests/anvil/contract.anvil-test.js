@@ -5,7 +5,7 @@ import {
   MULTICALL_ADDRESS,
   SimpleStorage,
   WALLET,
-} from './local.mock.js';
+} from './anvil.mock.js';
 
 const storage = new SimpleStorage(WALLET);
 

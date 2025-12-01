@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { BaseContract } from '../src';
+import { BaseContract } from '../../src/index.js';
 import RegistryAbi from './aave-v3-providers-registry.abi.json';
 import CometAbi from './compound-v3-comet.abi.json';
 

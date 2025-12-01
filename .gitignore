@@ -1,5 +1,5 @@
 # Test files and coverage
-anvil-data-tmp
+anvil-state.tmp.json
 
 # Environment and local config
 .env

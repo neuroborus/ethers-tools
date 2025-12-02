@@ -1,11 +1,11 @@
 import { TransactionResponse } from 'ethers';
 import { describe, expect, test } from 'vitest';
-import { waitForAddressTxs } from '../../src/index.js';
+import { waitForAddressPendingTxs } from '../../src/index.js';
 import { MULTICALL_PROVIDER_CONTRACT, WALLET } from './anvil.mock.js';
 
 describe('MulticallProvider - Local Test', () => {
   test('checking out for async calls', async () => {
-    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
 
     const [first, second, both, writeCount, setFirstTx] = await Promise.all([
       MULTICALL_PROVIDER_CONTRACT['getFirst'](),

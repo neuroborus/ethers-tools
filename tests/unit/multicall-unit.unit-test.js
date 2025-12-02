@@ -85,7 +85,7 @@ describe('MulticallUnit Behavior and Edge Cases', () => {
     };
 
     await isolatedUnit.run({
-      maxStaticCallsStack: 1,
+      staticBatchLimit: 1,
       maxAsyncReadBatches: 3,
     });
 

@@ -2,7 +2,7 @@
  * @param {AbortSignal[]} [signals]
  * @returns {Promise<never>}
  */
-export function createSignalsPromise(signals) {
+export const createSignalsPromise = (signals) => {
   return new Promise((_, reject) => {
     const onAbort = (signal) =>
       reject(signal.reason || new Error('Operation aborted'));
@@ -11,4 +11,4 @@ export function createSignalsPromise(signals) {
       signal.addEventListener('abort', onAbort, { once: true });
     }
   });
-}
+};

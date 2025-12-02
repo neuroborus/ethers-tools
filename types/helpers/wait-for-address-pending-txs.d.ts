@@ -1,7 +1,8 @@
 import { Provider } from 'ethers';
 
-export declare const waitForAddressTxs: (
+export declare const waitForAddressPendingTxs: (
   address: string,
   provider: Provider,
-  delayMs?: number
+  delayMs?: number,
+  signals?: AbortSignal[]
 ) => Promise<void>;

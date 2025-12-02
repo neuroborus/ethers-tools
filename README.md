@@ -247,9 +247,9 @@ export interface ContractOptions {
   mutableCallsTimeoutMs?: number; // Timeout for mutable calls in ms. DEFAULT: 20000
 }
 export interface PriorityCallOptions {
-  asynchronous?: boolean; // Can be a little faster if provider allows (simultaneously getting gasPrice & gasLimit).
+  parallelFeeRequests?: boolean; // Can be a little faster if provider allows (simultaneously getting gasPrice & gasLimit).
   chainId?: bigint; // Manually set. (Prevents replay attacks by ensuring the transaction is valid only for the intended blockchain network)
-  provideChainId?: boolean; // Automatic - additional async request. (Prevents replay attacks by ensuring the transaction is valid only for the intended blockchain network)
+  autoDetectChainId?: boolean; // Automatic - additional async request. (Prevents replay attacks by ensuring the transaction is valid only for the intended blockchain network)
   multiplier?: number; // Multiplier for gasPrise and gasLimit values.
   signals?: AbortSignal[]; // Can be passed for abort signal control
   timeoutMs?: number; // Timeout in milliseconds. If not provided, there is no default option.
@@ -384,8 +384,8 @@ export interface MulticallOptions {
   waitForTxs?: boolean; // Wait for every transaction. Turned on by default for nonce safety. DEFAULT: true
   highPriorityTxs?: boolean; // You can make priority transaction when it is necessary. Requires more calls, but will be processed more quickly.
   priorityOptions?: PriorityCallOptions; // Only matters if `highPriorityTxs` is turned on.
-  maxStaticCallsStack?: number; // The maximum size of one static execution. If it overfills, the multicall performs additional executions. DEFAULT: 50
-  maxMutableCallsStack?: number; // The maximum size of one mutable execution. If it overfills, the multicall performs additional executions. DEFAULT: 10
+  staticBatchLimit?: number; // The maximum size of one static execution. If it overfills, the multicall performs additional executions. DEFAULT: 50
+  mutableBatchLimit?: number; // The maximum size of one mutable execution. If it overfills, the multicall performs additional executions. DEFAULT: 10
   signals?: AbortSignal[]; // Can be passed for abort signal control
   staticCallsTimeoutMs?: number; // Timeout for static calls in ms. DEFAULT: 10000
   mutableCallsTimeoutMs?: number; // Timeout for mutable calls in ms. DEFAULT: 20000
@@ -536,7 +536,7 @@ export declare const priorityCallEstimate: (
 ```
 
 ```typescript
-export declare const waitForAddressTxs: (
+export declare const waitForAddressPendingTxs: (
   // Function that waits for the end of all users transactions
   address: string,
   provider: Provider,

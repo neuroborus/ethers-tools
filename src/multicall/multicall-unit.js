@@ -102,8 +102,8 @@ export class MulticallUnit extends BaseContract {
   ) {
     super(Multicall3Abi, multicallAddress, driver);
     this._multicallOptions = {
-      maxStaticCallsStack: config.multicallUnit.staticCalls.batchLimit,
-      maxMutableCallsStack: config.multicallUnit.mutableCalls.batchLimit,
+      staticBatchLimit: config.multicallUnit.staticCalls.batchLimit,
+      mutableBatchLimit: config.multicallUnit.mutableCalls.batchLimit,
       waitForTxs: config.multicallUnit.waitForTxs,
       waitCallsTimeoutMs: config.multicallUnit.waitCalls.timeoutMs,
       batchDelayMs: config.multicallUnit.batchDelayMs,
@@ -664,12 +664,12 @@ export class MulticallUnit extends BaseContract {
       for (
         let i = 0;
         i < mutableCalls.length;
-        i += runOptions.maxMutableCallsStack
+        i += runOptions.mutableBatchLimit
       ) {
         checkSignals(runOptions.signals);
 
         const border = Math.min(
-          i + runOptions.maxMutableCallsStack,
+          i + runOptions.mutableBatchLimit,
           mutableCalls.length
         );
         const iterationCalls = mutableCalls.slice(i, border); // half-opened interval
@@ -692,10 +692,10 @@ export class MulticallUnit extends BaseContract {
       for (
         let i = 0;
         i < staticCalls.length;
-        i += runOptions.maxStaticCallsStack
+        i += runOptions.staticBatchLimit
       ) {
         const border = Math.min(
-          i + runOptions.maxStaticCallsStack,
+          i + runOptions.staticBatchLimit,
           staticCalls.length
         );
 
@@ -767,12 +767,12 @@ export class MulticallUnit extends BaseContract {
     for (
       let i = 0;
       i < mutableCalls.length;
-      i += runOptions.maxMutableCallsStack
+      i += runOptions.mutableBatchLimit
     ) {
       checkSignals(runOptions.signals);
 
       const border = Math.min(
-        i + runOptions.maxMutableCallsStack,
+        i + runOptions.mutableBatchLimit,
         mutableCalls.length
       );
       const iterationCalls = mutableCalls.slice(i, border); // half-opened interval

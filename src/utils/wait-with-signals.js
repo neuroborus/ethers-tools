@@ -3,7 +3,7 @@
  * @param {AbortSignal[]} [signals=[]]
  * @returns {Promise<void>}
  */
-export function waitWithSignals(ms, signals = []) {
+export const waitWithSignals = (ms, signals = []) => {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(resolve, ms);
 
@@ -22,4 +22,4 @@ export function waitWithSignals(ms, signals = []) {
       }
     }
   });
-}
+};

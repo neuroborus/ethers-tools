@@ -391,6 +391,7 @@ export interface MulticallOptions {
   mutableCallsTimeoutMs?: number; // Timeout for mutable calls in ms. DEFAULT: 20000
   waitCallsTimeoutMs?: number; // Timeout for waiting in ms. DEFAULT: 30000
   batchDelayMs?: number; // Delay between batch calls. DEFAULT: 0
+  maxAsyncReadBatches?: number; // Maximum number of concurrent read RPC requests. DEFAULT: 1
 }
 export enum CallMutability {
   Static = 'STATIC',

@@ -1,4 +1,5 @@
 import { Interface } from 'ethers';
+import { Hex } from './hex';
 import type { StateMutability } from './state-mutability';
 
 export interface ContractCall {
@@ -6,6 +7,6 @@ export interface ContractCall {
   contractInterface?: Interface;
   target: string;
   allowFailure: boolean;
-  callData: string;
+  callData: Hex;
   stateMutability: StateMutability;
 }

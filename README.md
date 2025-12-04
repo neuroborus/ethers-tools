@@ -247,9 +247,9 @@ export interface ContractOptions {
   mutableCallsTimeoutMs?: number; // Timeout for mutable calls in ms. DEFAULT: 20000
 }
 export interface PriorityCallOptions {
-  asynchronous?: boolean; // Can be a little faster if provider allows (simultaneously getting gasPrice & gasLimit).
+  parallelFeeRequests?: boolean; // Can be a little faster if provider allows (simultaneously getting gasPrice & gasLimit).
   chainId?: bigint; // Manually set. (Prevents replay attacks by ensuring the transaction is valid only for the intended blockchain network)
-  provideChainId?: boolean; // Automatic - additional async request. (Prevents replay attacks by ensuring the transaction is valid only for the intended blockchain network)
+  autoDetectChainId?: boolean; // Automatic - additional async request. (Prevents replay attacks by ensuring the transaction is valid only for the intended blockchain network)
   multiplier?: number; // Multiplier for gasPrise and gasLimit values.
   signals?: AbortSignal[]; // Can be passed for abort signal control
   timeoutMs?: number; // Timeout in milliseconds. If not provided, there is no default option.
@@ -293,6 +293,25 @@ export interface ContractLog {
   description: LogDescription; // Parsed data
 }
 ```
+
+### Auto contracts and overloaded functions
+
+`BaseContract.createAutoClass(...)` (or `BaseContract.createAutoInstance(...)`) dynamically generates methods from the ABI:
+
+```ts
+const Erc20 = BaseContract.createAutoClass(erc20Abi);
+
+const dai = new Erc20(DAI_ADDRESS, provider);
+await dai.balanceOf(user); // calls balanceOf(address)
+```
+
+#### !: Overloaded functions are not supported yet
+
+Auto contracts assume that each function name in the ABI is unique.
+If your ABI contains overloaded functions (same name, different arguments),
+only one of them will be mapped to a generated method.
+
+#### In that case you should just describe your contract manually with BaseContract inheritance.
 
 ## MulticallUnit
 
@@ -384,13 +403,14 @@ export interface MulticallOptions {
   waitForTxs?: boolean; // Wait for every transaction. Turned on by default for nonce safety. DEFAULT: true
   highPriorityTxs?: boolean; // You can make priority transaction when it is necessary. Requires more calls, but will be processed more quickly.
   priorityOptions?: PriorityCallOptions; // Only matters if `highPriorityTxs` is turned on.
-  maxStaticCallsStack?: number; // The maximum size of one static execution. If it overfills, the multicall performs additional executions. DEFAULT: 50
-  maxMutableCallsStack?: number; // The maximum size of one mutable execution. If it overfills, the multicall performs additional executions. DEFAULT: 10
+  staticBatchLimit?: number; // The maximum size of one static execution. If it overfills, the multicall performs additional executions. DEFAULT: 50
+  mutableBatchLimit?: number; // The maximum size of one mutable execution. If it overfills, the multicall performs additional executions. DEFAULT: 10
   signals?: AbortSignal[]; // Can be passed for abort signal control
   staticCallsTimeoutMs?: number; // Timeout for static calls in ms. DEFAULT: 10000
   mutableCallsTimeoutMs?: number; // Timeout for mutable calls in ms. DEFAULT: 20000
   waitCallsTimeoutMs?: number; // Timeout for waiting in ms. DEFAULT: 30000
   batchDelayMs?: number; // Delay between batch calls. DEFAULT: 0
+  maxAsyncReadBatches?: number; // Maximum number of concurrent read RPC requests. DEFAULT: 1
 }
 export enum CallMutability {
   Static = 'STATIC',
@@ -535,7 +555,7 @@ export declare const priorityCallEstimate: (
 ```
 
 ```typescript
-export declare const waitForAddressTxs: (
+export declare const waitForAddressPendingTxs: (
   // Function that waits for the end of all users transactions
   address: string,
   provider: Provider,
@@ -568,6 +588,11 @@ export declare const multicallGenerateTag: () => string;
 #### Entities
 
 ```typescript
+export type Address = `0x${string}`;
+export type Hex = `0x${string}`;
+```
+
+```typescript
 // Contains more than 250 different chains.
 // Supports JS as struct. All of these chains right now supports multicall3.
 export enum Chain {
@@ -589,7 +614,7 @@ export declare const checkSignals: (signals: AbortSignal[]) => void;
 // Create a promise for signals to use in race conditions
 export declare const createSignalsPromise: (
   signals: AbortSignal[]
-) => Promise<never>;
+) => Promise<never> & { cleanup: () => {} };
 ```
 
 ```typescript

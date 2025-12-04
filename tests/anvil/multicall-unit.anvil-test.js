@@ -1,6 +1,6 @@
 import { TransactionReceipt, TransactionResponse } from 'ethers';
 import { describe, expect, test } from 'vitest';
-import { MulticallUnit, waitForAddressTxs } from '../../src/index.js';
+import { MulticallUnit, waitForAddressPendingTxs } from '../../src/index.js';
 import {
   AsyncAbortController,
   MULTICALL_ADDRESS,
@@ -8,19 +8,19 @@ import {
   SimpleStorageAutoClass,
   SimpleStorageAutoInstance,
   WALLET,
-} from './local.mock.js';
+} from './anvil.mock.js';
 
 const storage = new SimpleStorage(WALLET);
 
 // noinspection t
 describe('MulticallUnit - Local Test', () => {
   test('does not wait for tx receipts (write calls with raw responses)', async () => {
-    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
 
     const unit = new MulticallUnit(
       WALLET,
       {
-        maxMutableCallsStack: 2,
+        mutableBatchLimit: 2,
         waitForTxs: false,
       },
       MULTICALL_ADDRESS
@@ -47,11 +47,11 @@ describe('MulticallUnit - Local Test', () => {
   });
 
   test('waits for tx receipts automatically (write calls)', async () => {
-    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
 
     const unit = new MulticallUnit(
       WALLET,
-      { maxMutableCallsStack: 2 },
+      { mutableBatchLimit: 2 },
       MULTICALL_ADDRESS
     );
 
@@ -72,12 +72,12 @@ describe('MulticallUnit - Local Test', () => {
   });
 
   test('executes write calls with highPriorityTxs', async () => {
-    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
 
     const unit = new MulticallUnit(
       WALLET,
       {
-        maxMutableCallsStack: 2,
+        mutableBatchLimit: 2,
         highPriorityTxs: true,
       },
       MULTICALL_ADDRESS
@@ -103,13 +103,13 @@ describe('MulticallUnit - Local Test', () => {
   });
 
   test('handles mixed static and mutable calls', async () => {
-    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
 
     const unit = new MulticallUnit(
       WALLET,
       {
-        maxStaticCallsStack: 5,
-        maxMutableCallsStack: 2,
+        staticBatchLimit: 5,
+        mutableBatchLimit: 2,
         highPriorityTxs: true,
       },
       MULTICALL_ADDRESS
@@ -140,7 +140,7 @@ describe('MulticallUnit - Local Test', () => {
   test('reads static data successfully', async () => {
     const unit = new MulticallUnit(
       WALLET,
-      { maxStaticCallsStack: 2 },
+      { staticBatchLimit: 2 },
       MULTICALL_ADDRESS
     );
 
@@ -161,7 +161,7 @@ describe('MulticallUnit - Local Test', () => {
       WALLET,
       {
         staticCallsTimeoutMs: 1,
-        maxStaticCallsStack: 1,
+        staticBatchLimit: 1,
       },
       MULTICALL_ADDRESS
     );
@@ -176,7 +176,7 @@ describe('MulticallUnit - Local Test', () => {
       error = err;
     }
 
-    expect(error).to.be.match(/aborted/);
+    expect(error).to.be.match(/exceeded/);
     expect(unit.success).to.be.false;
   });
 
@@ -188,7 +188,7 @@ describe('MulticallUnit - Local Test', () => {
       {
         highPriorityTxs: true,
         signals: [controller.signal],
-        maxStaticCallsStack: 2,
+        staticBatchLimit: 2,
       },
       MULTICALL_ADDRESS
     );
@@ -214,7 +214,7 @@ describe('MulticallUnit - Local Test', () => {
       WALLET,
       {
         highPriorityTxs: true,
-        maxStaticCallsStack: 2,
+        staticBatchLimit: 2,
       },
       MULTICALL_ADDRESS
     );
@@ -236,7 +236,7 @@ describe('MulticallUnit - Local Test', () => {
       WALLET,
       {
         highPriorityTxs: true,
-        maxStaticCallsStack: 2,
+        staticBatchLimit: 2,
       },
       MULTICALL_ADDRESS
     );
@@ -261,7 +261,7 @@ describe('MulticallUnit - Local Test', () => {
     const unit = new MulticallUnit(
       WALLET,
       {
-        maxStaticCallsStack: 2,
+        staticBatchLimit: 2,
       },
       MULTICALL_ADDRESS
     );
@@ -286,7 +286,7 @@ describe('MulticallUnit - Local Test', () => {
     const unit = new MulticallUnit(
       WALLET,
       {
-        maxStaticCallsStack: 2,
+        staticBatchLimit: 2,
       },
       MULTICALL_ADDRESS
     );
@@ -313,7 +313,7 @@ describe('MulticallUnit - Local Test', () => {
     const unit = new MulticallUnit(
       WALLET,
       {
-        maxStaticCallsStack: 2,
+        staticBatchLimit: 2,
       },
       MULTICALL_ADDRESS
     );
@@ -342,7 +342,7 @@ describe('MulticallUnit - Local Test', () => {
     const unit = new MulticallUnit(
       WALLET,
       {
-        maxMutableCallsStack: 2,
+        mutableBatchLimit: 2,
       },
       MULTICALL_ADDRESS
     );
@@ -361,7 +361,7 @@ describe('MulticallUnit - Local Test', () => {
     const unit = new MulticallUnit(
       WALLET,
       {
-        maxMutableCallsStack: 2,
+        mutableBatchLimit: 2,
       },
       MULTICALL_ADDRESS
     );

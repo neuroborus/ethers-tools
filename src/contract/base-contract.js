@@ -30,7 +30,7 @@ export class BaseContract {
    * or generate `ContractCall` objects for batching/multicall.
    *
    * @param {import('ethers').Interface | import('ethers').InterfaceAbi} abi - The contract ABI.
-   * @param {string} [address] - Optional deployed contract address.
+   * @param {string | import('../../types/entities').Address} [address] - Optional deployed contract address.
    * @param {import('ethers').Provider | import('ethers').Signer} [driver] - Optional provider or signer.
    * @param {import('../../types/entities').ContractOptions} [options] - Optional contract options.
    * @returns {import('../../types/contract').DynamicContractConstructor} A class constructor extending `BaseContract` with dynamic methods.
@@ -82,7 +82,7 @@ export class BaseContract {
    * Equivalent to: `new BaseContract.createAutoClass(...)()`
    *
    * @param {import('ethers').Interface | import('ethers').InterfaceAbi} abi - The contract ABI.
-   * @param {string} [address] - Optional deployed contract address.
+   * @param {string | import('../../types/entities').Address} [address] - Optional deployed contract address.
    * @param {import('ethers').Provider | import('ethers').Signer} [driver] - Optional provider or signer.
    * @param {import('../../types/entities').ContractOptions} [options] - Optional contract options.
    * @returns {import('../../types/contract').DynamicContract} A ready-to-use contract instance with dynamic method access.
@@ -96,7 +96,7 @@ export class BaseContract {
    * BaseContract address.
    * @readonly
    * @public
-   * @type {string}
+   * @type {import('../../types/entities').Address}
    */
   address;
   /**
@@ -135,7 +135,7 @@ export class BaseContract {
 
   /**
    * @param {import('ethers').Interface | import('ethers').InterfaceAbi} abi
-   * @param {string} [address='0x0000000000000000000000000000000000000000']
+   * @param {string | import('../../types/entities').Address} [address='0x0000000000000000000000000000000000000000']
    * @param {import('ethers').Provider | import('ethers').Signer | undefined} [driver]
    * @param {import('../../types/entities').ContractOptions} [options={}]
    */

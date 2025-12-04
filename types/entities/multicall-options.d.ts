@@ -7,11 +7,12 @@ export interface MulticallOptions {
   waitForTxs?: boolean;
   highPriorityTxs?: boolean;
   priorityOptions?: PriorityCallOptions;
-  maxStaticCallsStack?: number;
-  maxMutableCallsStack?: number;
+  staticBatchLimit?: number;
+  mutableBatchLimit?: number;
   signals?: AbortSignal[];
   staticCallsTimeoutMs?: number;
   mutableCallsTimeoutMs?: number;
   waitCallsTimeoutMs?: number;
   batchDelayMs?: number;
+  maxAsyncReadBatches?: number;
 }

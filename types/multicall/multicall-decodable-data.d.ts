@@ -1,6 +1,6 @@
-import { ContractCall } from '../entities';
+import { ContractCall, Hex } from '../entities';
 
 export interface MulticallDecodableData {
   call: ContractCall;
-  rawData: string;
+  rawData: Hex;
 }

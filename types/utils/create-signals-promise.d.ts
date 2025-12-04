@@ -1,3 +1,3 @@
 export declare const createSignalsPromise: (
   signals: AbortSignal[]
-) => Promise<never>;
+) => Promise<never> & { cleanup: () => void };

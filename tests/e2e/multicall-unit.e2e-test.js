@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { MulticallUnit } from '../../src';
-import { CometContract, JSON_PROVIDER, RegistryContract } from '../mock.js';
+import { CometContract, JSON_PROVIDER, RegistryContract } from './mock.js';
 
 // Instantiate contracts with a JSON RPC provider
 export const registry = new RegistryContract(JSON_PROVIDER);
@@ -77,9 +77,9 @@ describe('MulticallUnit E2E Tests', () => {
     expect(cachedOwner).to.be.equal(ownerObjResult).to.be.equal(ownerArrResult);
   });
 
-  test('honors maxStaticCallsStack limit', async () => {
+  test('honors staticBatchLimit limit', async () => {
     const unit = new MulticallUnit(JSON_PROVIDER, {
-      maxStaticCallsStack: 3,
+      staticBatchLimit: 3,
     });
 
     const listCall = registry.getAddressesProvidersListCall();

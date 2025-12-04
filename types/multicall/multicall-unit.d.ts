@@ -6,8 +6,10 @@ import {
 } from 'ethers';
 import { EventEmitter } from 'node:events';
 import {
+  Address,
   CallMutability,
   ContractCall,
+  Hex,
   MulticallOptions,
   MulticallTags,
   MulticallWaitOptions,
@@ -35,7 +37,7 @@ export declare class MulticallUnit extends BaseContract {
   /**
    * Stores raw data from each tagged result.
    */
-  protected _rawData: Map<Tagable, string>;
+  protected _rawData: Map<Tagable, Hex>;
   /**
    * Stores TransactionResponse for each mutable call.
    */
@@ -68,7 +70,7 @@ export declare class MulticallUnit extends BaseContract {
   constructor(
     driver: Signer | Provider,
     options?: MulticallOptions,
-    multicallAddress?: string
+    multicallAddress?: string | Address
   );
 
   /**
@@ -202,14 +204,14 @@ export declare class MulticallUnit extends BaseContract {
   public waitRaw(
     tags: MulticallTags,
     options?: MulticallWaitOptions
-  ): Promise<string | null>;
+  ): Promise<Hex | null>;
   /**
    * Waiting for the specific raw data. Throws if not found.
    */
   public waitRawOrThrow(
     tags: MulticallTags,
     options?: MulticallWaitOptions
-  ): Promise<string>;
+  ): Promise<Hex>;
   /**
    * Waiting for the specific TransactionResponse.
    */

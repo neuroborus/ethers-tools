@@ -1,17 +1,17 @@
 import { describe, expect, test } from 'vitest';
-import { MulticallUnit, waitForAddressTxs } from '../../src/index.js';
+import { MulticallUnit, waitForAddressPendingTxs } from '../../src/index.js';
 import {
   AsyncAbortController,
   MULTICALL_ADDRESS,
   SimpleStorage,
   WALLET,
-} from './local.mock.js';
+} from './anvil.mock.js';
 
 const storage = new SimpleStorage(WALLET);
 
 describe('Local BaseContract Tests', () => {
   test('listens to FirstChanged events emitted during multiple txs', async () => {
-    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
 
     let eventCount = 0;
     storage
@@ -24,7 +24,7 @@ describe('Local BaseContract Tests', () => {
     const unit = new MulticallUnit(
       WALLET,
       {
-        maxMutableCallsStack: 2,
+        mutableBatchLimit: 2,
         highPriorityTxs: true,
       },
       MULTICALL_ADDRESS
@@ -41,7 +41,7 @@ describe('Local BaseContract Tests', () => {
   });
 
   test('writes a value and reads logs from the past 10 blocks', async () => {
-    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
 
     const tx = await storage.setFirst(90);
     await tx.wait();
@@ -51,7 +51,7 @@ describe('Local BaseContract Tests', () => {
   });
 
   test('aborts transaction due to timeout', async () => {
-    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
 
     let error;
     try {
@@ -67,7 +67,7 @@ describe('Local BaseContract Tests', () => {
   });
 
   test('aborts transaction using an aborted signal', async () => {
-    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
 
     const controller = new AsyncAbortController();
     controller.abort();
@@ -85,7 +85,7 @@ describe('Local BaseContract Tests', () => {
   });
 
   test('aborts log fetching using signal during async race', async () => {
-    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
 
     const controller = new AsyncAbortController();
     let error;
@@ -105,7 +105,7 @@ describe('Local BaseContract Tests', () => {
   });
 
   test('call estimate should be accurate', async () => {
-    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
 
     const toSet = 909;
     const estimate = await storage.setFirstEstimate(toSet);
@@ -117,7 +117,7 @@ describe('Local BaseContract Tests', () => {
   });
 
   test('priority call estimate should be accurate', async () => {
-    await waitForAddressTxs(WALLET.address, WALLET.provider);
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
 
     const toSet = 909;
     const options = {

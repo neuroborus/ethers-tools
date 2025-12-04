@@ -1,9 +1,9 @@
 import { Interface, InterfaceAbi, Provider, Signer } from 'ethers';
-import { ContractOptions } from '../entities';
+import { Address, ContractOptions } from '../entities';
 
 export interface DynamicContractConstructorArgs {
   abi?: Interface | InterfaceAbi;
-  address?: string;
+  address?: string | Address;
   driver?: Provider | Signer;
   options?: ContractOptions;
 }

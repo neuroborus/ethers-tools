@@ -1,6 +1,8 @@
-export type GlobalConfig = {
+import { Address } from './entities';
+
+export interface GlobalConfig {
   multicallUnit: {
-    address: string;
+    address: string | Address;
     allowFailure: boolean;
     waitForTxs: boolean;
     staticCalls: {
@@ -18,6 +20,7 @@ export type GlobalConfig = {
       multiplier: number;
     };
     batchDelayMs: number;
+    maxAsyncReadBatches: number;
   };
   contract: {
     staticCalls: {
@@ -34,4 +37,4 @@ export type GlobalConfig = {
   priorityCalls: {
     multiplier: number;
   };
-};
+}

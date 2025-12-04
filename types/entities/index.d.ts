@@ -11,3 +11,6 @@ export * from './multicall-options';
 export * from './multicall-wait-options';
 export * from './multicall-associated-call';
 export * from './chain';
+
+export * from './address';
+export * from './hex';

@@ -40,7 +40,7 @@ export class MulticallUnit extends BaseContract {
   /**
    * Stores raw data from each tagged result.
    * @Protected
-   * @type {Map<import('../../types/entities').Tagable, string>}
+   * @type {Map<import('../../types/entities').Tagable, | import('../../types/entities').Hex>}
    */
   _rawData = new Map();
   /**
@@ -93,7 +93,7 @@ export class MulticallUnit extends BaseContract {
   /**
    * @param {import('ethers').Provider | import('ethers').Signer} driver
    * @param {import('../../types/entities').MulticallOptions} [options={}]
-   * @param {string} [multicallAddress=MULTICALL_ADDRESS]
+   * @param {string | import('../../types/entities').Address} [multicallAddress=MULTICALL_ADDRESS]
    */
   constructor(
     driver,
@@ -102,8 +102,8 @@ export class MulticallUnit extends BaseContract {
   ) {
     super(Multicall3Abi, multicallAddress, driver);
     this._multicallOptions = {
-      maxStaticCallsStack: config.multicallUnit.staticCalls.batchLimit,
-      maxMutableCallsStack: config.multicallUnit.mutableCalls.batchLimit,
+      staticBatchLimit: config.multicallUnit.staticCalls.batchLimit,
+      mutableBatchLimit: config.multicallUnit.mutableCalls.batchLimit,
       waitForTxs: config.multicallUnit.waitForTxs,
       waitCallsTimeoutMs: config.multicallUnit.waitCalls.timeoutMs,
       batchDelayMs: config.multicallUnit.batchDelayMs,
@@ -467,6 +467,7 @@ export class MulticallUnit extends BaseContract {
       signals.push(createTimeoutSignal(options.timeoutMs));
 
     const nTags = multicallNormalizeTags(tags);
+    let cleanup = () => {};
     return raceWithSignals(
       () =>
         new Promise((resolve, reject) => {
@@ -482,7 +483,7 @@ export class MulticallUnit extends BaseContract {
             reject(error);
           };
 
-          const cleanup = () => {
+          cleanup = () => {
             this._emitter.removeListener(resultEvent, onResult);
             this._emitter.removeListener(errorEvent, onError);
           };
@@ -491,14 +492,18 @@ export class MulticallUnit extends BaseContract {
           this._emitter.once(errorEvent, onError);
         }),
       signals
-    );
+    ).catch((err) => {
+      // If abort wins, waiter never resolves/rejects, so cleanup is not called
+      cleanup();
+      throw err;
+    });
   }
   /**
    * Waiting for the specific call.
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
    * @param {import('../../types/entities').MulticallWaitOptions} [options]
-   * @returns {Promise<string | null>}
+   * @returns {Promise<import('../../types/entities').Hex | null>}
    */
   async waitRaw(tags, options) {
     const nTags = multicallNormalizeTags(tags);
@@ -521,7 +526,7 @@ export class MulticallUnit extends BaseContract {
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
    * @param {import('../../types/entities').MulticallWaitOptions} [options]
-   * @returns {Promise<string>}
+   * @returns {Promise<import('../../types/entities').Hex>}
    */
   async waitRawOrThrow(tags, options) {
     const raw = await this.waitRaw(tags, options);
@@ -664,12 +669,12 @@ export class MulticallUnit extends BaseContract {
       for (
         let i = 0;
         i < mutableCalls.length;
-        i += runOptions.maxMutableCallsStack
+        i += runOptions.mutableBatchLimit
       ) {
         checkSignals(runOptions.signals);
 
         const border = Math.min(
-          i + runOptions.maxMutableCallsStack,
+          i + runOptions.mutableBatchLimit,
           mutableCalls.length
         );
         const iterationCalls = mutableCalls.slice(i, border); // half-opened interval
@@ -687,26 +692,42 @@ export class MulticallUnit extends BaseContract {
       }
 
       // Process static
+      const concurrency = Math.max(1, runOptions.maxAsyncReadBatches ?? 1);
+      const staticBatches = [];
       for (
         let i = 0;
         i < staticCalls.length;
-        i += runOptions.maxStaticCallsStack
+        i += runOptions.staticBatchLimit
       ) {
-        checkSignals(runOptions.signals);
-
         const border = Math.min(
-          i + runOptions.maxStaticCallsStack,
+          i + runOptions.staticBatchLimit,
           staticCalls.length
         );
-        const iterationCalls = staticCalls.slice(i, border); // half-opened interval
-        const iterationIndexes = staticIndexes.slice(i, border); // half-opened interval
 
-        const iterationResponse = await this._processStaticCalls(
-          iterationCalls,
-          runOptions
+        staticBatches.push({
+          calls: staticCalls.slice(i, border), // half-open interval
+          indexes: staticIndexes.slice(i, border), // half-open interval
+        });
+      }
+
+      for (let i = 0; i < staticBatches.length; i += concurrency) {
+        checkSignals(runOptions.signals);
+
+        const group = staticBatches.slice(i, i + concurrency);
+
+        await Promise.all(
+          group.map(async (batch) => {
+            checkSignals(runOptions.signals);
+
+            const iterationResponse = await this._processStaticCalls(
+              batch.calls,
+              runOptions
+            );
+
+            this._saveResponse(iterationResponse, batch.indexes, tags);
+          })
         );
 
-        this._saveResponse(iterationResponse, iterationIndexes, tags);
         await waitWithSignals(runOptions.batchDelayMs, runOptions.signals);
       }
     } catch (error) {
@@ -739,10 +760,11 @@ export class MulticallUnit extends BaseContract {
 
     checkSignals(runOptions.signals);
 
-    const {
-      mutableCalls,
-      mutableTags,
-    } = this._splitCalls(calls, tags, options.forceMutability);
+    const { mutableCalls, mutableTags } = this._splitCalls(
+      calls,
+      tags,
+      options.forceMutability
+    );
 
     const estimates = [];
 
@@ -750,12 +772,12 @@ export class MulticallUnit extends BaseContract {
     for (
       let i = 0;
       i < mutableCalls.length;
-      i += runOptions.maxMutableCallsStack
+      i += runOptions.mutableBatchLimit
     ) {
       checkSignals(runOptions.signals);
 
       const border = Math.min(
-        i + runOptions.maxMutableCallsStack,
+        i + runOptions.mutableBatchLimit,
         mutableCalls.length
       );
       const iterationCalls = mutableCalls.slice(i, border); // half-opened interval

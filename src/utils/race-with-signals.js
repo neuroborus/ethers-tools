@@ -6,10 +6,17 @@ import { createSignalsPromise } from './index.js';
  * @param {AbortSignal[]} [signals=[]]
  * @returns {Promise<T>}
  */
-export async function raceWithSignals(racer, signals = []) {
+export const raceWithSignals = async (racer, signals = []) => {
   for (const signal of signals) {
     signal.throwIfAborted();
   }
 
-  return Promise.race([racer(), createSignalsPromise(signals)]);
-}
+  const signalsPromise = createSignalsPromise(signals);
+  const cleanup = signalsPromise.cleanup ?? (() => {});
+
+  try {
+    return await Promise.race([racer(), signalsPromise]);
+  } finally {
+    cleanup();
+  }
+};

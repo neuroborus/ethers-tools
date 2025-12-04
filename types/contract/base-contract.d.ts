@@ -7,6 +7,7 @@ import {
   Signer,
 } from 'ethers';
 import {
+  Address,
   ContractCall,
   ContractCallOptions,
   ContractGetLogsOptions,
@@ -40,7 +41,7 @@ export declare class BaseContract {
    */
   static createAutoClass(
     abi: Interface | InterfaceAbi,
-    address?: string,
+    address?: string | Address,
     driver?: Provider | Signer,
     options?: ContractOptions
   ): DynamicContractConstructor;
@@ -64,7 +65,7 @@ export declare class BaseContract {
    */
   static createAutoInstance(
     abi: Interface | InterfaceAbi,
-    address?: string,
+    address?: string | Address,
     driver?: Provider | Signer,
     options?: ContractOptions
   ): DynamicContract;
@@ -72,7 +73,7 @@ export declare class BaseContract {
   /**
    * BaseContract address.
    */
-  public readonly address: string;
+  public readonly address: Address;
   /**
    * Indicates whether the contract instance is callable (i.e., has both address and driver).
    */
@@ -90,7 +91,7 @@ export declare class BaseContract {
 
   constructor(
     abi: Interface | InterfaceAbi,
-    address?: string,
+    address?: string | Address,
     driver?: Signer | Provider,
     options?: ContractOptions
   );

@@ -1,6 +1,8 @@
+import { Address } from './entities';
+
 export interface GlobalConfig {
   multicallUnit: {
-    address: string;
+    address: string | Address;
     allowFailure: boolean;
     waitForTxs: boolean;
     staticCalls: {

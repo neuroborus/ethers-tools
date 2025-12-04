@@ -40,7 +40,7 @@ export class MulticallUnit extends BaseContract {
   /**
    * Stores raw data from each tagged result.
    * @Protected
-   * @type {Map<import('../../types/entities').Tagable, string>}
+   * @type {Map<import('../../types/entities').Tagable, | import('../../types/entities').Hex>}
    */
   _rawData = new Map();
   /**
@@ -93,7 +93,7 @@ export class MulticallUnit extends BaseContract {
   /**
    * @param {import('ethers').Provider | import('ethers').Signer} driver
    * @param {import('../../types/entities').MulticallOptions} [options={}]
-   * @param {string} [multicallAddress=MULTICALL_ADDRESS]
+   * @param {string | import('../../types/entities').Address} [multicallAddress=MULTICALL_ADDRESS]
    */
   constructor(
     driver,
@@ -498,7 +498,7 @@ export class MulticallUnit extends BaseContract {
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
    * @param {import('../../types/entities').MulticallWaitOptions} [options]
-   * @returns {Promise<string | null>}
+   * @returns {Promise<import('../../types/entities').Hex | null>}
    */
   async waitRaw(tags, options) {
     const nTags = multicallNormalizeTags(tags);
@@ -521,7 +521,7 @@ export class MulticallUnit extends BaseContract {
    * @public
    * @param {import('../../types/entities').MulticallTags} tags
    * @param {import('../../types/entities').MulticallWaitOptions} [options]
-   * @returns {Promise<string>}
+   * @returns {Promise<import('../../types/entities').Hex>}
    */
   async waitRawOrThrow(tags, options) {
     const raw = await this.waitRaw(tags, options);

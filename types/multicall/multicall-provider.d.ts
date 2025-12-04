@@ -7,7 +7,7 @@ import {
   TransactionRequest,
   TransactionResponse,
 } from 'ethers';
-import { MulticallOptions } from '../entities';
+import { Address, MulticallOptions } from '../entities';
 import { MulticallUnit } from './multicall-unit';
 
 /**
@@ -49,7 +49,7 @@ export declare class MulticallProvider extends AbstractProvider {
   /**
    * Optional Multicall3 contract address override.
    */
-  private _multicallAddress?: string;
+  private _multicallAddress?: Address;
   /**
    * Indicates whether a batch execution is scheduled.
    */

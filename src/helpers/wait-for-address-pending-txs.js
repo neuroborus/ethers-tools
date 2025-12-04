@@ -1,7 +1,7 @@
 import { checkSignals } from '../utils/index.js';
 
 /**
- * @param {string} address
+ * @param {string | import('../../types/entities').Address} address
  * @param {import('ethers').Provider} provider
  * @param {number} [delayMs=1000]
  * @param {AbortSignal[]} [signals=[]]

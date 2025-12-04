@@ -294,6 +294,25 @@ export interface ContractLog {
 }
 ```
 
+### Auto contracts and overloaded functions
+
+`BaseContract.createAutoClass(...)` (or `BaseContract.createAutoInstance(...)`) dynamically generates methods from the ABI:
+
+```ts
+const Erc20 = BaseContract.createAutoClass(erc20Abi);
+
+const dai = new Erc20(DAI_ADDRESS, provider);
+await dai.balanceOf(user); // calls balanceOf(address)
+```
+
+#### !: Overloaded functions are not supported yet
+
+Auto contracts assume that each function name in the ABI is unique.
+If your ABI contains overloaded functions (same name, different arguments),
+only one of them will be mapped to a generated method.
+
+#### In that case you should just describe your contract manually with BaseContract inheritance.
+
 ## MulticallUnit
 
 ### Description
@@ -569,6 +588,11 @@ export declare const multicallGenerateTag: () => string;
 #### Entities
 
 ```typescript
+export type Address = `0x${string}`;
+export type Hex = `0x${string}`;
+```
+
+```typescript
 // Contains more than 250 different chains.
 // Supports JS as struct. All of these chains right now supports multicall3.
 export enum Chain {
@@ -590,7 +614,7 @@ export declare const checkSignals: (signals: AbortSignal[]) => void;
 // Create a promise for signals to use in race conditions
 export declare const createSignalsPromise: (
   signals: AbortSignal[]
-) => Promise<never>;
+) => Promise<never> & { cleanup: () => {} };
 ```
 
 ```typescript

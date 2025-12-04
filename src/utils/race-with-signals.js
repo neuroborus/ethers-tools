@@ -11,5 +11,12 @@ export const raceWithSignals = async (racer, signals = []) => {
     signal.throwIfAborted();
   }
 
-  return Promise.race([racer(), createSignalsPromise(signals)]);
+  const signalsPromise = createSignalsPromise(signals);
+  const cleanup = signalsPromise.cleanup ?? (() => {});
+
+  try {
+    return await Promise.race([racer(), signalsPromise]);
+  } finally {
+    cleanup();
+  }
 };

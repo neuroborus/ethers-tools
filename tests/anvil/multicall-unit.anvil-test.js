@@ -176,7 +176,7 @@ describe('MulticallUnit - Local Test', () => {
       error = err;
     }
 
-    expect(error).to.be.match(/aborted/);
+    expect(error).to.be.match(/exceeded/);
     expect(unit.success).to.be.false;
   });
 

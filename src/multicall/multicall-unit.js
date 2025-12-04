@@ -467,6 +467,7 @@ export class MulticallUnit extends BaseContract {
       signals.push(createTimeoutSignal(options.timeoutMs));
 
     const nTags = multicallNormalizeTags(tags);
+    let cleanup = () => {};
     return raceWithSignals(
       () =>
         new Promise((resolve, reject) => {
@@ -482,7 +483,7 @@ export class MulticallUnit extends BaseContract {
             reject(error);
           };
 
-          const cleanup = () => {
+          cleanup = () => {
             this._emitter.removeListener(resultEvent, onResult);
             this._emitter.removeListener(errorEvent, onError);
           };
@@ -491,7 +492,11 @@ export class MulticallUnit extends BaseContract {
           this._emitter.once(errorEvent, onError);
         }),
       signals
-    );
+    ).catch((err) => {
+      // If abort wins, waiter never resolves/rejects, so cleanup is not called
+      cleanup();
+      throw err;
+    });
   }
   /**
    * Waiting for the specific call.

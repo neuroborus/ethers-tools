@@ -1,7 +1,7 @@
 import { Interface } from 'ethers';
 import { describe, expect, test } from 'vitest';
-import { BaseContract } from '../../src/contract/base-contract.js';
 import { StateMutability } from '../../src/entities/index.js';
+import { BaseContract } from '../../src/contract/base-contract.js';
 import { MulticallProvider } from '../../src/multicall/multicall-provider.js';
 import { MulticallUnit } from '../../src/multicall/multicall-unit.js';
 import { JSON_PROVIDER, JSON_WALLET } from '../e2e/mock.js';

@@ -12,7 +12,6 @@ import {
 
 const storage = new SimpleStorage(WALLET);
 
-// noinspection t
 describe('MulticallUnit - Local Test', () => {
   test('does not wait for tx receipts (write calls with raw responses)', async () => {
     await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
@@ -378,5 +377,130 @@ describe('MulticallUnit - Local Test', () => {
 
     expect(estimate01).to.be.eq(receipt01.gasUsed);
     expect(estimate23).to.be.eq(receipt02.gasUsed);
+  });
+
+  test('clear() resets state and allows re-use', async () => {
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
+
+    const unit = new MulticallUnit(
+      WALLET,
+      { staticBatchLimit: 5 },
+      MULTICALL_ADDRESS
+    );
+
+    unit.add(storage.getFirstCall(), 'first');
+    unit.add(storage.getSecondCall(), 'second');
+
+    const result1 = await unit.run();
+    expect(result1).to.be.true;
+    expect(unit.getSingle('first')).to.be.a('bigint');
+
+    unit.clear();
+    expect(unit.tags).to.have.length(0);
+    expect(unit.calls).to.have.length(0);
+    expect(unit.success).to.be.undefined;
+
+    unit.add(storage.getWriteCountCall(), 'count');
+    const result2 = await unit.run();
+    expect(result2).to.be.true;
+    expect(unit.getSingle('count')).to.be.a('bigint');
+  });
+
+  test('addBatch() adds multiple calls at once', async () => {
+    const unit = new MulticallUnit(
+      WALLET,
+      { staticBatchLimit: 5 },
+      MULTICALL_ADDRESS
+    );
+
+    const tags = unit.addBatch([
+      { call: storage.getFirstCall(), tags: 'first' },
+      { call: storage.getSecondCall(), tags: 'second' },
+      { call: storage.getBothCall(), tags: 'both' },
+    ]);
+
+    expect(tags).to.have.length(3);
+
+    const result = await unit.run();
+    expect(result).to.be.true;
+
+    expect(unit.getSingle('first')).to.be.a('bigint');
+    expect(unit.getSingle('second')).to.be.a('bigint');
+    expect(unit.get('both')).to.have.property('first');
+  });
+
+  test('getAll() returns decoded results for every call', async () => {
+    const unit = new MulticallUnit(
+      WALLET,
+      { staticBatchLimit: 5 },
+      MULTICALL_ADDRESS
+    );
+
+    unit.add(storage.getFirstCall(), 0);
+    unit.add(storage.getSecondCall(), 1);
+    unit.add(storage.getWriteCountCall(), 2);
+
+    await unit.run();
+
+    const all = unit.getAll();
+    expect(all).to.have.length(3);
+    all.forEach((v) => expect(typeof v).to.equal('bigint'));
+  });
+
+  test('waitRaw() resolves raw hex data for static call', async () => {
+    const unit = new MulticallUnit(
+      WALLET,
+      { staticBatchLimit: 5 },
+      MULTICALL_ADDRESS
+    );
+
+    unit.add(storage.getFirstCall(), 'first');
+
+    const [raw, success] = await Promise.all([
+      unit.waitRaw('first'),
+      unit.run(),
+    ]);
+
+    expect(typeof raw).to.equal('string');
+    expect(raw.startsWith('0x')).to.be.true;
+    expect(success).to.be.true;
+  });
+
+  test('waitTx() resolves TransactionResponse for mutable call', async () => {
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
+
+    const unit = new MulticallUnit(
+      WALLET,
+      { mutableBatchLimit: 5, waitForTxs: false },
+      MULTICALL_ADDRESS
+    );
+
+    unit.add(storage.setFirstCall(999), 'write');
+
+    const [tx, success] = await Promise.all([unit.waitTx('write'), unit.run()]);
+
+    expect(tx).toBeInstanceOf(TransactionResponse);
+    expect(success).to.be.true;
+    await tx.wait();
+  });
+
+  test('waitReceipt() resolves TransactionReceipt for mutable call', async () => {
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
+
+    const unit = new MulticallUnit(
+      WALLET,
+      { mutableBatchLimit: 5, waitForTxs: true },
+      MULTICALL_ADDRESS
+    );
+
+    unit.add(storage.setFirstCall(888), 'write');
+
+    const [receipt, success] = await Promise.all([
+      unit.waitReceipt('write'),
+      unit.run(),
+    ]);
+
+    expect(receipt).toBeInstanceOf(TransactionReceipt);
+    expect(success).to.be.true;
   });
 });

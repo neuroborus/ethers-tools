@@ -164,7 +164,7 @@ describe('MulticallUnit — payable batching', () => {
     expect(unit.isSuccess('dep')).to.be.true;
   });
 
-  test('payable batch gas estimate returns a valid bigint', async () => {
+  test('payable batch gas estimate is accurate', async () => {
     await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
 
     const unit = new MulticallUnit(
@@ -178,6 +178,10 @@ describe('MulticallUnit — payable batching', () => {
     const [estimate] = await unit.estimateRun();
     expect(typeof estimate).to.equal('bigint');
     expect(estimate).to.be.gt(0n);
+
+    await unit.run();
+    const receipt = unit.getTxReceipt('dep1');
+    expect(estimate).to.equal(receipt.gasUsed);
   });
 });
 
@@ -192,5 +196,19 @@ describe('MulticallProvider — payable sendTransaction', () => {
     });
 
     expect(tx).toBeInstanceOf(TransactionResponse);
+  });
+
+  test('deposit via MulticallProvider updates contract state', async () => {
+    await waitForAddressPendingTxs(WALLET.address, WALLET.provider);
+
+    const countBefore = await piggy.getDepositCount();
+
+    const tx = await MULTICALL_PROVIDER_PIGGY['deposit']({
+      value: oneEth,
+    });
+    await tx.wait();
+
+    const countAfter = await piggy.getDepositCount();
+    expect(countAfter - countBefore).to.equal(1n);
   });
 });

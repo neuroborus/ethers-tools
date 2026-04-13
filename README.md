@@ -223,15 +223,28 @@ providing an ethers `Signer` (e.g, `Wallet`) as the driver.
 ): DynamicContract` // Instantiates a DynamicContract with methods automatically generated
   from the provided ABI.
 
-- `call<T = unknown>(methodName: string, args?: any[], options?: CallOptions): Promise<T>` // Performs a single on-chain call for the contract.
-  Throws an error if unable to execute.
-- `estimate(method: string, args?: any[], options?: ContractCallOptions): Promise<bigint>;` // Estimates gas required to execute a contract method.
+- `call<T = unknown>(methodName: string, args?: any[], options?: ContractCallOptions): Promise<T>` // Performs a single on-chain call for the contract.
+  Throws an error if unable to execute. Supports payable calls via `options.overrides.value`.
+- `estimate(method: string, args?: any[], options?: ContractCallOptions): Promise<bigint>;` // Estimates gas required to execute a contract method. Supports payable calls via `options.overrides.value`.
 - `getCall(methodName: string, args?: any[], callData?: Partial<ContractCall>): ContractCall` // Creates a `ContractCall` for `MulticallUnit`.
   Throws an error if unable to create. You can do force replacement with a `callData` parameter.
 - `listenEvent(eventName: string, listener: Listener): Promise<Contract>` // Creates event listener on the contract. WebsocketProvider is required.
 - `getLogs(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): Promise<ContractLog[]>` // Synchronous log retrieval.
   'fromBlocks' can have a minus sign, which means 'n blocks ago'.
 - `getLogsStream(fromBlock: number, eventsNames?: string[], toBlock?: number, options?: ContractGetLogsOptions): AsyncGenerator<ContractLog, void>` // Asynchronous way to getting logs.
+
+#### ContractCallOptions
+
+```typescript
+export interface ContractCallOptions {
+  forceMutability?: CallMutability; // Force the call to be treated as static or mutable.
+  highPriorityTx?: boolean; // If activated, calls as "high priority tx".
+  priorityOptions?: PriorityCallOptions; // Only matters if `highPriorityTx` is activated.
+  signals?: AbortSignal[]; // Can be passed for abort signal control.
+  timeoutMs?: number; // Timeout in ms for this specific call.
+  overrides?: Overrides; // ethers.js Overrides (e.g. { value } for payable methods).
+}
+```
 
 #### ContractOptions
 
@@ -253,6 +266,7 @@ export interface PriorityCallOptions {
   multiplier?: number; // Multiplier for gasPrise and gasLimit values.
   signals?: AbortSignal[]; // Can be passed for abort signal control
   timeoutMs?: number; // Timeout in milliseconds. If not provided, there is no default option.
+  overrides?: Overrides; // ethers.js Overrides (e.g. { value } for payable methods).
 }
 ```
 
@@ -267,6 +281,7 @@ export type ContractCall = {
   allowFailure: boolean; // Failure allowance - false by default (*). DEFAULT: false
   callData: string; // Encoded function data - uses in multicall.
   stateMutability: StateMutability; // Shows mutability of the method.
+  value?: bigint; // ETH value to send with the call (payable methods). Triggers aggregate3Value in MulticallUnit.
 };
 export declare enum StateMutability {
   View = 'view',
@@ -321,6 +336,10 @@ only one of them will be mapped to a generated method.
 it splits the stored calls into mutable and static, prioritizing mutable calls. It then processes them by stacks.
 The size of the concurrently processed call stack for mutable and static calls can be adjusted separately via
 `MulticallOptions`, along with other parameters.
+
+**Payable support:** When any call in a mutable batch carries `value > 0n`,
+MulticallUnit automatically switches from `aggregate3` to `aggregate3Value` and
+forwards the summed ETH value to the Multicall3 contract.
 
 ### Tags
 
@@ -383,12 +402,12 @@ constructor(
 - `wait<T>(tags: MulticallTags, options?: MulticallWaitOptions): Promise<void>` // Waiting for the call execution.
 - `waitFor<T>(tags: MulticallTags, options?: MulticallWaitOptions): Promise<T>` // Waiting for the parsed call result.
 - `waitForOrThrow<T>(tags: MulticallTags, options?: MulticallWaitOptions): Promise<T>` // Like waitFor(), but throws if result is not found.
-- `waitRaw(tags: MulticallTags, options?: MulticallWaitOptions): Promise<string | null>;` // Waiting for the specific raw data.
-- `waitRawOrThrow(tags: MulticallTags, options?: MulticallWaitOptions): Promise<string>;` // Same as waitRaw, but throws if not found.
-- `waitTx(tags: MulticallTags, options?: MulticallWaitOptions): Promise<string | null>;` // Waiting for the TransactionResponse for the specific call.
-- `waitTxOrThrow(tags: MulticallTags, options?: MulticallWaitOptions): Promise<string>;` // Same as waitTx, but throws if not found.
-- `waitReceipt(tags: MulticallTags, options?: MulticallWaitOptions): Promise<string | null>;` // Waiting for the TransactionReceipt for the specific call.
-- `waitReceiptOrThrow(tags: MulticallTags, options?: MulticallWaitOptions): Promise<string>;` // Same as waitReceipt, but throws if not found.
+- `waitRaw(tags: MulticallTags, options?: MulticallWaitOptions): Promise<Hex | null>;` // Waiting for the specific raw data.
+- `waitRawOrThrow(tags: MulticallTags, options?: MulticallWaitOptions): Promise<Hex>;` // Same as waitRaw, but throws if not found.
+- `waitTx(tags: MulticallTags, options?: MulticallWaitOptions): Promise<TransactionResponse | null>;` // Waiting for the TransactionResponse for the specific call.
+- `waitTxOrThrow(tags: MulticallTags, options?: MulticallWaitOptions): Promise<TransactionResponse>;` // Same as waitTx, but throws if not found.
+- `waitReceipt(tags: MulticallTags, options?: MulticallWaitOptions): Promise<TransactionReceipt | null>;` // Waiting for the TransactionReceipt for the specific call.
+- `waitReceiptOrThrow(tags: MulticallTags, options?: MulticallWaitOptions): Promise<TransactionReceipt>;` // Same as waitReceipt, but throws if not found.
 
 ---
 
@@ -440,6 +459,9 @@ When using `allowFailure`, _make sure that you do not need to track the outcome 
 eth_call and sendTransaction requests using Multicall3 via MulticallUnit from ethers-tools.
 This provider is **fully compatible** with ethers.Contract and transparently reduces
 the number of RPC calls by aggregating requests that occur within the same event loop tick.
+
+Payable calls are supported: when a transaction carries `value`, MulticallProvider
+sets `stateMutability: Payable` and delegates to `aggregate3Value` via MulticallUnit.
 
 ## Config
 

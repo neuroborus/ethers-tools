@@ -19,6 +19,7 @@ import { MulticallAssociatedCall } from '../entities';
 import { BaseContract } from '../contract';
 import { MulticallDecodableData } from './multicall-decodable-data';
 import { MulticallResponse } from './multicall-response';
+import { SplitCalls } from './split-calls';
 
 /**
  * MulticallUnit extends the BaseContract class to support batching multiple contract calls
@@ -270,7 +271,7 @@ export declare class MulticallUnit extends BaseContract {
     calls: ContractCall[],
     tags: Tagable[],
     forceMutability?: CallMutability
-  ): Promise<MulticallResponse[]>;
+  ): SplitCalls;
   private _processStaticCalls(
     iterationCalls: ContractCall[],
     runOptions: MulticallOptions
@@ -280,6 +281,11 @@ export declare class MulticallUnit extends BaseContract {
     iterationTags: Tagable[],
     runOptions: MulticallOptions
   ): Promise<MulticallResponse[]>;
+  private _estimateMutableCallsBatch(
+    iterationCalls: ContractCall[],
+    iterationTags: Tagable[],
+    runOptions: MulticallOptions
+  ): Promise<bigint>;
   private _prepareMutableBatch(iterationCalls: ContractCall[]): {
     method: string;
     calls: object[];
@@ -288,6 +294,6 @@ export declare class MulticallUnit extends BaseContract {
   private _saveResponse(
     iterationResponse: MulticallResponse[],
     iterationIndexes: number[],
-    globalTags: MulticallTags[]
+    globalTags: Tagable[]
   ): void;
 }

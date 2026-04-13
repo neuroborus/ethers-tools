@@ -280,6 +280,11 @@ export declare class MulticallUnit extends BaseContract {
     iterationTags: Tagable[],
     runOptions: MulticallOptions
   ): Promise<MulticallResponse[]>;
+  private _prepareMutableBatch(iterationCalls: ContractCall[]): {
+    method: string;
+    calls: object[];
+    overrides?: object;
+  };
   private _saveResponse(
     iterationResponse: MulticallResponse[],
     iterationIndexes: number[],

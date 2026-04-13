@@ -18,8 +18,9 @@ import { MulticallUnit } from './multicall-unit';
  * the number of RPC calls by aggregating requests that occur within the same event loop tick.
  *
  * Features:
- * - Batches multiple read-only calls (eth_call) into a single Multicall
- * - Defers execution until the next tick using setTimeout(0)
+ * - Batches multiple calls (view, non-payable, and payable) into a single Multicall
+ * - Automatically uses aggregate3Value when any call carries ETH value
+ * - Defers execution until the next tick using queueMicrotask
  * - Integrates cleanly with ethers.js v6 contract system
  * - Delegates all other provider methods to the wrapped base provider
  *

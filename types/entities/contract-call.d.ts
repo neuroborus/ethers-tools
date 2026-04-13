@@ -9,4 +9,5 @@ export interface ContractCall {
   allowFailure: boolean;
   callData: Hex;
   stateMutability: StateMutability;
+  value?: bigint;
 }

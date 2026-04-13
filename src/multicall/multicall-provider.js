@@ -13,8 +13,9 @@ import { MulticallUnit } from './multicall-unit.js';
  * the number of RPC calls by aggregating requests that occur within the same event loop tick.
  *
  * Features:
- * - Batches multiple calls (view & non-payable) into a single Multicall
- * - Defers execution until the next tick using setTimeout(0)
+ * - Batches multiple calls (view, non-payable, and payable) into a single Multicall
+ * - Automatically uses aggregate3Value when any call carries ETH value
+ * - Defers execution until the next tick using queueMicrotask
  * - Integrates cleanly with ethers.js v6 contract system
  * - Delegates all other provider methods to the wrapped base provider
  *
@@ -139,11 +140,15 @@ export class MulticallProvider extends AbstractProvider {
     if (!transaction.to || !callData)
       throw MULTICALL_ERRORS.MISSING_PROVIDER_CALL_DATA;
 
+    const hasValue = transaction.value && transaction.value > 0n;
     const call = {
       target: transaction.to.toString(),
       allowFailure: config.multicallUnit.allowFailure,
       callData,
-      stateMutability: StateMutability.NonPayable,
+      stateMutability: hasValue
+        ? StateMutability.Payable
+        : StateMutability.NonPayable,
+      ...(hasValue ? { value: BigInt(transaction.value) } : {}),
     };
 
     const tag = this._multicallUnit.add(call);

@@ -1,3 +1,4 @@
+import { Overrides } from 'ethers';
 import { CallMutability } from './call-mutability';
 import { PriorityCallOptions } from './priority-call-options';
 
@@ -7,4 +8,5 @@ export interface ContractCallOptions {
   priorityOptions?: PriorityCallOptions;
   signals?: AbortSignal[];
   timeoutMs?: number;
+  overrides?: Overrides;
 }

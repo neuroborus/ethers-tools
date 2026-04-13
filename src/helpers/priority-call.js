@@ -79,7 +79,8 @@ const formTx = async (
     method,
     args,
     localOptions.parallelFeeRequests,
-    localSignals
+    localSignals,
+    localOptions.overrides
   );
 
   const maxFeePerGas = Math.ceil(
@@ -94,6 +95,7 @@ const formTx = async (
   );
   checkSignals(localSignals);
   const txn = await contract.getFunction(method).populateTransaction(...args, {
+    ...(localOptions.overrides || {}),
     gasLimit,
     maxFeePerGas,
     maxPriorityFeePerGas,
@@ -120,6 +122,7 @@ const formTx = async (
  * @param {any[]} [args]
  * @param {boolean} parallelFeeRequests
  * @param {AbortSignal[]} signals
+ * @param {import('../../types/entities').Overrides} [overrides]
  * @returns {Promise<[import('ethers').FeeData, bigint]>}
  */
 const gatherOriginalData = async (
@@ -128,20 +131,24 @@ const gatherOriginalData = async (
   method,
   args,
   parallelFeeRequests,
-  signals
+  signals,
+  overrides
 ) => {
+  const estimateArgs = overrides ? [...args, overrides] : args;
   let originalFeeData, originalGasLimit;
   checkSignals(signals);
   if (parallelFeeRequests) {
     [originalFeeData, originalGasLimit] = await Promise.all([
       provider.getFeeData(),
-      contract.getFunction(method).estimateGas(...args),
+      contract.getFunction(method).estimateGas(...estimateArgs),
     ]);
     return [originalFeeData, originalGasLimit];
   }
   originalFeeData = await provider.getFeeData();
   checkSignals(signals);
-  originalGasLimit = await contract.getFunction(method).estimateGas(...args);
+  originalGasLimit = await contract
+    .getFunction(method)
+    .estimateGas(...estimateArgs);
 
   return [originalFeeData, originalGasLimit];
 };

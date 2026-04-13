@@ -1,3 +1,6 @@
+# NPM
+.npmrc
+
 # Test files and coverage
 anvil-state.tmp.json
 

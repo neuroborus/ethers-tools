@@ -1,3 +1,7 @@
+# NPM
+.npmrc
+.npmrc.example
+
 # Test files and coverage
 tests/
 coverage/

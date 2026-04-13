@@ -1,6 +1,12 @@
 # Test files and coverage
 anvil-state.tmp.json
 
+# Foundry build artifacts
+tests/anvil/SimpleStorage/cache/
+tests/anvil/SimpleStorage/out/
+tests/anvil/SimpleStorage/foundry.toml
+tests/anvil/SimpleStorage/src/Counter.sol
+
 # Environment and local config
 .env
 

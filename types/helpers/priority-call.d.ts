@@ -1,6 +1,7 @@
 import {
   Contract,
   FeeData,
+  Overrides,
   Provider,
   Signer,
   TransactionLike,
@@ -40,5 +41,7 @@ declare const gatherOriginalData: (
   contract: Contract,
   method: string,
   args: any[],
-  options: PriorityCallOptions
+  parallelFeeRequests: boolean,
+  signals: AbortSignal[],
+  overrides?: Overrides
 ) => Promise<[FeeData, bigint]>;

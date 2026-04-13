@@ -223,8 +223,15 @@ export class BaseContract {
         this._getTimeoutSignal(isStatic, callOptions.timeoutMs)
       );
 
+    const callArgs = callOptions.overrides
+      ? [...args, callOptions.overrides]
+      : args;
+
     if (isStatic) {
-      return raceWithSignals(() => methodFn.staticCall(...args), localSignals);
+      return raceWithSignals(
+        () => methodFn.staticCall(...callArgs),
+        localSignals
+      );
     } else {
       if (this.readonly) throw CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION;
       let tx;
@@ -235,11 +242,12 @@ export class BaseContract {
             priorityCall(provider, this._driver, this.contract, method, args, {
               signals: localSignals,
               ...options.priorityOptions,
+              overrides: callOptions.overrides,
             }),
           localSignals
         );
       } else {
-        tx = await raceWithSignals(() => methodFn(...args), localSignals);
+        tx = await raceWithSignals(() => methodFn(...callArgs), localSignals);
       }
       return tx;
     }
@@ -279,6 +287,10 @@ export class BaseContract {
     if (callOptions.timeoutMs)
       localSignals.push(this._getTimeoutSignal(false, callOptions.timeoutMs));
 
+    const callArgs = callOptions.overrides
+      ? [...args, callOptions.overrides]
+      : args;
+
     if (this.readonly) throw CONTRACTS_ERRORS.READ_ONLY_CONTRACT_MUTATION;
     let estimate;
     if (callOptions.highPriorityTx) {
@@ -294,13 +306,14 @@ export class BaseContract {
             {
               signals: localSignals,
               ...options.priorityOptions,
+              overrides: callOptions.overrides,
             }
           ),
         localSignals
       );
     } else {
       estimate = await raceWithSignals(
-        () => this.contract[method].estimateGas(...args),
+        () => this.contract[method].estimateGas(...callArgs),
         localSignals
       );
     }

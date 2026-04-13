@@ -18,6 +18,7 @@ import { multicallResultEventName } from './multicall-result-event-name.js';
 import { multicallSplitCalls } from './multicall-split-calls.js';
 
 const aggregate3 = 'aggregate3';
+const aggregate3Value = 'aggregate3Value';
 
 /**
  * MulticallUnit extends the BaseContract class to support batching multiple contract calls
@@ -866,12 +867,15 @@ export class MulticallUnit extends BaseContract {
    */
   async _processMutableCalls(iterationCalls, iterationTags, runOptions) {
     let result;
-    const tx = await this.call(aggregate3, [iterationCalls], {
+    const { method, calls, overrides } =
+      this._prepareMutableBatch(iterationCalls);
+    const tx = await this.call(method, [calls], {
       forceMutability: CallMutability.Mutable,
       highPriorityTx: runOptions.highPriorityTxs,
       priorityOptions: runOptions.priorityOptions,
       signals: runOptions.signals,
       timeoutMs: runOptions.mutableCallsTimeoutMs,
+      overrides,
     });
     iterationTags.forEach((tag) => this._txResponses.set(tag, tx));
     if (runOptions.waitForTxs) {
@@ -902,13 +906,44 @@ export class MulticallUnit extends BaseContract {
    * @returns {Promise<bigint>}
    */
   async _estimateMutableCallsBatch(iterationCalls, iterationTags, runOptions) {
-    return this.estimate(aggregate3, [iterationCalls], {
+    const { method, calls, overrides } =
+      this._prepareMutableBatch(iterationCalls);
+    return this.estimate(method, [calls], {
       forceMutability: CallMutability.Mutable,
       highPriorityTx: runOptions.highPriorityTxs,
       priorityOptions: runOptions.priorityOptions,
       signals: runOptions.signals,
       timeoutMs: runOptions.mutableCallsTimeoutMs,
+      overrides,
     });
+  }
+
+  /**
+   * Prepares a mutable batch for execution: picks aggregate3 or aggregate3Value
+   * based on whether any call carries a value, and computes the total msg.value.
+   * @private
+   * @param {import('../../types/entities').ContractCall[]} iterationCalls
+   * @returns {{ method: string, calls: object[], overrides: object | undefined }}
+   */
+  _prepareMutableBatch(iterationCalls) {
+    const hasValue = iterationCalls.some((c) => c.value && c.value > 0n);
+    if (!hasValue) {
+      return { method: aggregate3, calls: iterationCalls };
+    }
+    const totalValue = iterationCalls.reduce(
+      (sum, c) => sum + (c.value || 0n),
+      0n
+    );
+    return {
+      method: aggregate3Value,
+      calls: iterationCalls.map((c) => ({
+        target: c.target,
+        allowFailure: c.allowFailure,
+        value: c.value || 0n,
+        callData: c.callData,
+      })),
+      overrides: { value: totalValue },
+    };
   }
 
   /**

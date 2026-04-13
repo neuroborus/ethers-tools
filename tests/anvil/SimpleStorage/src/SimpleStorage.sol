@@ -39,3 +39,34 @@ contract SimpleStorage {
         return writeCount;
     }
 }
+
+contract PayablePiggyBank {
+    uint256 public totalDeposited;
+    uint256 public depositCount;
+
+    event Deposited(address indexed from, uint256 amount);
+
+    function deposit() external payable {
+        totalDeposited += msg.value;
+        depositCount += 1;
+        emit Deposited(msg.sender, msg.value);
+    }
+
+    function getBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function getTotalDeposited() external view returns (uint256) {
+        return totalDeposited;
+    }
+
+    function getDepositCount() external view returns (uint256) {
+        return depositCount;
+    }
+
+    receive() external payable {
+        totalDeposited += msg.value;
+        depositCount += 1;
+        emit Deposited(msg.sender, msg.value);
+    }
+}
